@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FFF4E4">
+<title>Pifometer – Daily Guessing Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#FFF4E4; --ink:#1C1433; --mut:#6B6380; --card:#fff; --line:#EADFCC;
+  --g1:#FF6B3D; --g1s:#FFE1D6;   /* Ballpark */
+  --g2:#7B5CFF; --g2s:#E6E0FF;   /* Right Angle */
+  --g3:#0FB67F; --g3s:#D3F5E8;   /* What Year */
+  --gold:#FFC83D;
+  --c:var(--g1); --cs:var(--g1s);
+  --disp:"Bricolage Grotesque",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,-apple-system,sans-serif;min-height:100dvh;padding:0 16px env(safe-area-inset-bottom);transition:background .4s}
+body.g{background:var(--c)}
+main{max-width:440px;margin:0 auto;padding:20px 0 40px;min-height:100dvh;display:flex;flex-direction:column}
+h1,h2,.disp{font-family:var(--disp);letter-spacing:-.02em}
+h1{font-size:44px;line-height:.98;margin:.15em 0 .3em;font-weight:800}
+h2{font-size:26px;line-height:1.12;margin:0 0 .4em;font-weight:800}
+p{margin:0 0 1em}
+.mut{color:var(--mut)}
+.logo{font-family:var(--disp);font-weight:800;font-size:22px;display:flex;align-items:center;gap:8px}
+.logo i{width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--g1) 0 33%,var(--g2) 0 66%,var(--g3) 0);display:inline-block}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:2px solid var(--ink);border-radius:99px;padding:4px 12px;font-weight:700;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:22px;padding:20px;box-shadow:0 5px 0 var(--ink)}
+.tile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;border:2px solid var(--ink);margin-top:10px;background:var(--cs);box-shadow:0 4px 0 var(--ink)}
+.tile .ic{width:48px;height:48px;border-radius:14px;background:var(--c);display:grid;place-items:center;font-size:24px;flex:none;border:2px solid var(--ink)}
+.tile b{font-family:var(--disp);font-size:19px;display:block;line-height:1.1}
+.tile span{font-size:14px;color:var(--mut)}
+button{font:inherit;font-weight:700;font-size:17px;border:2px solid var(--ink);border-radius:16px;padding:15px 18px;background:var(--ink);color:#fff;width:100%;cursor:pointer;min-height:54px;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .08s}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+button.alt{background:var(--card);color:var(--ink);box-shadow:0 4px 0 var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.push{margin-top:auto}
+.sp{height:12px}
+/* game */
+.hud{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;margin-bottom:14px}
+.dots{display:flex;gap:6px;flex:1}
+.dots i{flex:1;height:8px;border-radius:9px;background:rgba(255,255,255,.35)}
+.dots i.on{background:#fff}
+.q{font-family:var(--disp);font-weight:800;font-size:27px;line-height:1.12;margin:0 0 6px}
+.val{font-family:var(--disp);font-weight:800;font-size:52px;text-align:center;line-height:1;margin:18px 0 6px;color:var(--c);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:8px 0}
+input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:9px;background:var(--cs);border:2px solid var(--ink)}
+input[type=range]::-moz-range-track{height:14px;border-radius:9px;background:var(--cs);border:2px solid var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:var(--c);border:3px solid var(--ink);margin-top:-12px;box-shadow:0 3px 0 var(--ink)}
+input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--c);border:3px solid var(--ink)}
+.keys{display:grid;gap:8px;margin-top:8px}.k3{grid-template-columns:repeat(3,1fr)}.k4{grid-template-columns:repeat(4,1fr)}.k5{grid-template-columns:repeat(5,1fr)}
+.key{min-height:48px;padding:8px 4px;font-size:16px;background:var(--cs);color:var(--ink);box-shadow:0 3px 0 var(--ink);border-radius:12px}
+.key:hover{background:var(--c);color:#fff}
+.step-l{font-weight:700;font-size:14px;margin:16px 0 0;display:flex;justify-content:space-between}.step-l a{color:var(--mut)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);font-weight:500}
+/* reveal scale */
+.scale{position:relative;height:76px;margin:14px 6px 4px}
+.scale .tr{position:absolute;left:0;right:0;top:26px;height:6px;border-radius:9px;background:var(--line)}
+.scale .gap{position:absolute;top:26px;height:6px;background:var(--c);opacity:.35;border-radius:9px}
+.mk{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:12px;font-weight:700;white-space:nowrap}
+.mk{line-height:18px}.mk i{display:block;width:16px;height:16px;border-radius:50%;margin:4px auto 0;border:3px solid var(--ink)}
+.mk.you i{background:#fff}
+.mk.ans i{background:var(--c)}
+.mk.ans{top:0;z-index:1} .mk.you{top:22px;color:var(--mut)} .mk.you i{margin:0 auto 4px}
+.mk.ans{animation:slide .6s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes slide{from{left:var(--from)}}
+.fb{display:flex;gap:12px;align-items:center;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--cs)}
+.pts{font-family:var(--disp);font-weight:800;font-size:30px;color:var(--c);animation:pop .45s cubic-bezier(.2,.9,.3,1.5) both;min-width:64px}
+.fb p{margin:0;font-size:15px;line-height:1.4}
+@keyframes pop{from{transform:scale(.3);opacity:0}}
+.verdict{font-family:var(--disp);font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em}
+/* intro */
+.intro{color:#fff;text-align:center;margin:auto 0;padding:20px 0}
+.intro .ic{font-size:72px;line-height:1;display:block;margin-bottom:10px;animation:pop .5s cubic-bezier(.2,.9,.3,1.5) both}
+.intro h1{font-size:52px}
+.intro p{font-size:18px;opacity:.95;max-width:30ch;margin:0 auto 1em}
+.intro .step{font-weight:700;opacity:.85;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+/* result */
+.score{font-family:var(--disp);font-weight:800;font-size:88px;line-height:.9;letter-spacing:-.04em}
+.grid{font-size:24px;letter-spacing:4px;line-height:1.3}
+.bars{display:grid;gap:10px;margin:6px 0 4px}
+.bars div{display:grid;grid-template-columns:112px 1fr 40px;align-items:center;gap:10px;font-size:14px;font-weight:700}
+.bars em{height:14px;border-radius:9px;background:var(--line);overflow:hidden;border:2px solid var(--ink)}
+.bars em b{display:block;height:100%;width:0;transition:width .9s cubic-bezier(.2,.9,.3,1)}
+input[type=email]{width:100%;font:inherit;padding:14px;border-radius:14px;border:2px solid var(--ink);background:#fff;color:var(--ink);margin-bottom:10px}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script>
+// ---------- Config (provisional) ----------
+const NAME = "Pifometer";
+const SB_URL = "https://mgfishwtcbpsuqdbhpia.supabase.co"; // Supabase project "business"
+const SB_KEY = "sb_publishable_X0ga4Q-22xxn8L-z6eTVCw_xr7CCDdc"; // public key: insert-only, cannot read data
+const APP_ID = "sharp-games";
+function send(table,row){try{fetch(SB_URL+"/rest/v1/"+table,{method:"POST",keepalive:true,headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({app:APP_ID,player_id:PLAYER,...row})}).catch(()=>{})}catch{}}
+const ROUNDS = 5;
+const GAMES = [
+  {id:"ballpark", title:"Ballpark", ic:"🎯", rule:"Big numbers, no calculator. Pick the scale, then fine-tune.", c:"--g1", cs:"--g1s", short:"Ballpark"},
+  {id:"eye", title:"Right Angle", ic:"📐", rule:"We give you an angle. Draw it by eye, no protractor.", c:"--g2", cs:"--g2s", short:"Right Angle"},
+  {id:"year", title:"What Year?", ic:"📅", rule:"Pick the decade, then the year. Every year off costs points.", c:"--g3", cs:"--g3s", short:"What Year?"}
+];
+
+// ---------- Daily seed (same questions for everyone) ----------
+const today = new Date().toISOString().slice(0,10);
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return ()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
+const R = rng(today);
+const pick=(a,n)=>{const c=[...a],o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(R()*c.length),1)[0]);return o};
+const fmt=n=>n>=1e12?(n/1e12).toLocaleString("en",{maximumFractionDigits:1})+" trillion":n>=1e9?(n/1e9).toLocaleString("en",{maximumFractionDigits:1})+" billion":n>=1e6?(n/1e6).toLocaleString("en",{maximumFractionDigits:1})+" million":n.toLocaleString("en",{maximumFractionDigits:0});
+
+// ---------- Content ----------
+const BALL=[
+ {q:"How far is the Moon from Earth, in km?",a:384400,min:1e3,max:1e8,note:"About 30 Earths lined up."},
+ {q:"How many seconds are in a year?",a:31536000,min:1e4,max:1e10,note:"A million seconds is only 11.5 days."},
+ {q:"How tall is the Eiffel Tower, in metres?",a:330,min:10,max:1e4,note:"Including its antennas."},
+ {q:"How tall is Mount Everest, in metres?",a:8849,min:100,max:1e5,note:"Above sea level."},
+ {q:"How much does a blue whale weigh, in kg?",a:150000,min:100,max:1e8,note:"Up to about 150 tonnes."},
+ {q:"How many people live on Earth?",a:8100000000,min:1e6,max:1e12,note:"About 8.1 billion."},
+ {q:"How fast does sound travel in air, in m/s?",a:343,min:1,max:1e6,note:"At 20 °C."},
+ {q:"How many bones are in an adult human body?",a:206,min:1,max:1e5,note:"Babies are born with around 300."},
+ {q:"How tall is the Burj Khalifa, in metres?",a:828,min:10,max:1e5,note:"The world's tallest building."},
+ {q:"How fast is light, in km per second?",a:299792,min:10,max:1e9,note:"About 7.5 laps of Earth per second."},
+ {q:"How many keys are on a standard piano?",a:88,min:1,max:1e4,note:"52 white, 36 black."},
+ {q:"How many member states does the UN have?",a:193,min:1,max:1e5,note:"Since South Sudan joined in 2011."},
+ {q:"What is Earth's diameter, in km?",a:12742,min:100,max:1e7,note:"About 12,700 km."},
+ {q:"How far is the Sun from Earth, in km?",a:149600000,min:1e5,max:1e11,note:"About 150 million km. Light takes 8 minutes."},
+ {q:"How tall is the Statue of Liberty with its pedestal, in metres?",a:93,min:1,max:1e4,note:"93 m from ground to torch."},
+ {q:"How many hairs are on a human head?",a:100000,min:100,max:1e9,note:"About 100,000 on average."},
+ {q:"How many Earth days does a year on Mars last?",a:687,min:1,max:1e6,note:"687 days, almost two Earth years."},
+ {q:"How many people live in the Greater Tokyo Area?",a:37000000,min:1e4,max:1e10,note:"About 37 million, the largest metro area on Earth."},
+ {q:"How many people live in the United States?",a:340000000,min:1e5,max:1e11,note:"About 340 million."},
+ {q:"How many people live in Canada?",a:41000000,min:1e4,max:1e10,note:"About 41 million."},
+ {q:"How deep is the Mariana Trench, in metres?",a:10935,min:10,max:1e7,note:"Nearly 11 km. Everest would sink with 2 km to spare."},
+ {q:"How long is the Nile, in km?",a:6650,min:10,max:1e7,note:"About 6,650 km."},
+ {q:"How fast can a cheetah run, in km/h?",a:110,min:1,max:1e5,note:"Up to about 110 km/h, in short bursts."},
+ {q:"How much does an adult male African elephant weigh, in kg?",a:6000,min:10,max:1e7,note:"About 6 tonnes."},
+ {q:"How tall is the Empire State Building to its tip, in metres?",a:443,min:10,max:1e5,note:"443 m including the antenna."},
+ {q:"How far is Paris from New York, in km?",a:5837,min:100,max:1e7,note:"About 5,800 km as the crow flies."},
+ {q:"How far is London from Sydney, in km?",a:17000,min:100,max:1e8,note:"About 17,000 km."},
+ {q:"How long is Earth's equator, in km?",a:40075,min:100,max:1e8,note:"About 40,000 km."},
+ {q:"How many hours are in a year?",a:8760,min:10,max:1e8,note:"365 × 24 = 8,760."},
+ {q:"How many minutes are in a week?",a:10080,min:10,max:1e8,note:"7 × 24 × 60 = 10,080."},
+ {q:"How many seconds are in a day?",a:86400,min:100,max:1e9,note:"86,400."},
+ {q:"How many cells are in the human body?",a:37000000000000,min:1e6,max:1e17,note:"About 37 trillion (estimates vary)."},
+ {q:"How many neurons are in the human brain?",a:86000000000,min:1e5,max:1e15,note:"About 86 billion."},
+ {q:"How many times does a human heart beat in a day?",a:100000,min:100,max:1e9,note:"About 100,000 times."},
+ {q:"How many bones are in a giraffe's neck?",a:7,min:1,max:1e4,note:"Just 7, the same as yours."},
+ {q:"How many teeth does an adult human have?",a:32,min:1,max:1e4,note:"32, wisdom teeth included."},
+ {q:"How many litres of water fill an Olympic swimming pool?",a:2500000,min:1e3,max:1e10,note:"About 2.5 million litres."},
+ {q:"How many Olympic pools would fill Lake Geneva?",a:35000000,min:1e3,max:1e12,note:"About 35 million."},
+ {q:"How much does the Eiffel Tower weigh, in kg?",a:10100000,min:1e3,max:1e11,note:"About 10,100 tonnes."},
+ {q:"How many McDonald's restaurants are there worldwide?",a:43000,min:100,max:1e8,note:"About 43,000."},
+ {q:"How many languages are spoken in the world today?",a:7000,min:10,max:1e7,note:"About 7,000."},
+ {q:"How fast does the International Space Station travel, in km/h?",a:28000,min:10,max:1e8,note:"About 28,000 km/h, one orbit every 90 minutes."},
+ {q:"How high does the International Space Station orbit, in km?",a:400,min:1,max:1e6,note:"About 400 km up."},
+ {q:"How hot is the surface of the Sun, in °C?",a:5500,min:10,max:1e8,note:"About 5,500 °C."},
+ {q:"How old is the universe, in years?",a:13800000000,min:1e5,max:1e14,note:"About 13.8 billion years."},
+ {q:"How old is Earth, in years?",a:4540000000,min:1e4,max:1e13,note:"About 4.5 billion years."},
+ {q:"How many steps lead to the top of the Eiffel Tower?",a:1665,min:10,max:1e6,note:"1,665 (visitors can climb 674)."},
+ {q:"How long is a marathon, in metres?",a:42195,min:100,max:1e8,note:"42,195 m."},
+ {q:"How many articles are on English Wikipedia?",a:6900000,min:1e3,max:1e11,note:"About 7 million."},
+ {q:"How many bees live in a hive in summer?",a:50000,min:10,max:1e8,note:"Around 50,000."},
+ {q:"How fast does a passenger jet cruise, in km/h?",a:900,min:10,max:1e6,note:"About 900 km/h."},
+ {q:"How much does a typical car weigh, in kg?",a:1500,min:10,max:1e6,note:"About 1.5 tonnes."},
+ {q:"How long is the Panama Canal, in km?",a:82,min:1,max:1e5,note:"About 82 km."},
+ {q:"How wide is the English Channel at its narrowest, in km?",a:33,min:1,max:1e5,note:"About 33 km, Dover to Calais."},
+ {q:"How many islands make up Indonesia?",a:17000,min:10,max:1e8,note:"More than 17,000."},
+ {q:"How many lakes are there in Finland?",a:188000,min:100,max:1e9,note:"About 188,000."},
+ {q:"How many people live in Iceland?",a:390000,min:1e3,max:1e10,note:"About 390,000."},
+ {q:"How many people live in India?",a:1450000000,min:1e5,max:1e12,note:"About 1.45 billion, the most populous country."}
+];
+const YEARS=[
+ {q:"First humans land on the Moon",a:1969},{q:"The Titanic sinks",a:1912},
+ {q:"The Berlin Wall falls",a:1989},{q:"The first iPhone is released",a:2007},
+ {q:"Wikipedia is launched",a:2001},{q:"The Chernobyl disaster",a:1986},
+ {q:"The first Harry Potter book is published",a:1997},{q:"The Wright brothers' first powered flight",a:1903},
+ {q:"Sputnik 1 becomes the first satellite",a:1957},{q:"Euro banknotes and coins enter circulation",a:2002},
+ {q:"The first Star Wars film hits cinemas",a:1977},{q:"Nelson Mandela is released from prison",a:1990},
+ {q:"Facebook is founded",a:2004},{q:"YouTube is launched",a:2005},
+ {q:"The first modern Olympic Games, in Athens",a:1896},{q:"The Soviet Union is dissolved",a:1991},
+ {q:"World War I begins",a:1914},
+ {q:"World War I ends",a:1918},
+ {q:"World War II begins",a:1939},
+ {q:"World War II ends",a:1945},
+ {q:"The attack on Pearl Harbor",a:1941},
+ {q:"The Wall Street Crash",a:1929},
+ {q:"Martin Luther King's “I Have a Dream” speech",a:1963},
+ {q:"President Kennedy is assassinated",a:1963},
+ {q:"The Woodstock festival",a:1969},
+ {q:"President Nixon resigns",a:1974},
+ {q:"Elvis Presley dies",a:1977},
+ {q:"John Lennon is killed",a:1980},
+ {q:"MTV goes on air",a:1981},
+ {q:"The Space Shuttle Challenger disaster",a:1986},
+ {q:"Google is founded",a:1998},
+ {q:"The September 11 attacks",a:2001},
+ {q:"Hurricane Katrina hits New Orleans",a:2005},
+ {q:"Barack Obama is elected president",a:2008},
+ {q:"Bitcoin is created",a:2009},
+ {q:"Instagram is launched",a:2010},
+ {q:"The Fukushima nuclear disaster",a:2011},
+ {q:"The UK votes for Brexit",a:2016},
+ {q:"COVID-19 is declared a pandemic",a:2020},
+ {q:"ChatGPT is released",a:2022},
+ {q:"The film Titanic is released",a:1997},
+ {q:"The first Toy Story film is released",a:1995},
+ {q:"Amazon is founded",a:1994},
+ {q:"Disneyland opens",a:1955},
+ {q:"Rosa Parks refuses to give up her bus seat",a:1955},
+ {q:"The first Super Bowl",a:1967},
+ {q:"Everest is climbed for the first time",a:1953},
+ {q:"The structure of DNA is discovered",a:1953},
+ {q:"Penicillin is discovered",a:1928},
+ {q:"Mickey Mouse appears in Steamboat Willie",a:1928},
+ {q:"The first Tour de France",a:1903},
+ {q:"The first Nobel Prizes are awarded",a:1901},
+ {q:"The Golden Gate Bridge opens",a:1937},
+ {q:"The Hindenburg airship disaster",a:1937},
+ {q:"Princess Diana dies",a:1997},
+ {q:"The Beatles play on The Ed Sullivan Show",a:1964},
+ {q:"Michael Jackson releases Thriller",a:1982},
+ {q:"The first PlayStation is released in Japan",a:1994},
+ {q:"Notre-Dame de Paris catches fire",a:2019},
+ {q:"The first website goes online",a:1991}
+];
+
+// ---------- State ----------
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const app=document.getElementById("app");
+const PLAYER=(()=>{let id=store.get("pid",null);if(!id){id=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));store.set("pid",id)}return id})();
+const sets={ballpark:pick(BALL,ROUNDS),year:pick(YEARS,ROUNDS),eye:Array.from({length:ROUNDS},()=>Math.round(12+R()*156))};
+let gi=0,ri=0,pts=[[],[],[]],answered=false,cur=null;
+const total=()=>pts.flat().reduce((a,b)=>a+b,0);
+
+function theme(g){const s=document.documentElement.style;
+  if(g){s.setProperty("--c",`var(${g.c})`);s.setProperty("--cs",`var(${g.cs})`);document.body.classList.add("g")}
+  else{s.setProperty("--c","var(--g1)");s.setProperty("--cs","var(--g1s)");document.body.classList.remove("g")}}
+
+// ---------- Home ----------
+function home(){
+  theme(null);
+  const st=store.get("streak",{n:0,last:""});
+  const done=store.get("done",null);const played=done&&done.date===today;
+  app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
+  <div style="margin:28px 0 8px"><h1>How good is your gut?</h1>
+  <p class="mut" style="font-size:18px">3 quick games, 3 minutes a day. Same questions for everyone, so you can compare with friends.</p></div>
+  ${GAMES.map((g,i)=>`<div class="tile" style="--c:var(${g.c});--cs:var(${g.cs})"><div class="ic">${g.ic}</div><div><b>${g.title}</b><span>${g.rule}</span></div></div>`).join("")}
+  <div class="push" style="padding-top:22px">${played
+    ?`<button id="res">See today's result · ${done.total}</button><div class="sp"></div><button id="go" class="alt">Play again for fun</button>`
+    :`<button id="go">Play today's round</button>`}</div>`;
+  go("go",()=>{gi=0;ri=0;pts=[[],[],[]];intro()});
+  go("res",()=>result(done.pts,true));
+}
+function go(id,fn){const e=document.getElementById(id);if(e)e.onclick=fn}
+
+// ---------- Game intro ----------
+function intro(){
+  const g=GAMES[gi];theme(g);
+  app.innerHTML=`<div class="intro"><span class="step">Game ${gi+1} of 3</span><span class="ic">${g.ic}</span><h1>${g.title}</h1><p>${g.rule}</p></div>
+  <button id="start" class="alt">Let's go</button>`;
+  go("start",play);
+}
+
+// ---------- Round ----------
+function play(){
+  const g=GAMES[gi];answered=false;let guess=null,stage=1,pre=null;
+  if(g.id==="ballpark")cur=sets.ballpark[ri];
+  if(g.id==="eye")cur=sets.eye[ri];
+  if(g.id==="year")cur=sets.year[ri];
+  const head=g.id==="ballpark"?`<p class="q">${cur.q}</p>`:g.id==="year"?`<p class="q">${cur.q}</p><p class="mut" style="margin:0">In which year?</p>`:`<p class="q">Draw a <span style="color:var(--c)">${cur}°</span> angle</p><p class="mut" style="margin:0">Drag the line with your finger. No protractor!</p>`;
+  app.innerHTML=`<div class="hud"><span>${g.ic} ${g.short}</span><div class="dots">${Array.from({length:ROUNDS},(_,i)=>`<i class="${i<=ri?"on":""}"></i>`).join("")}</div><span>${total()}</span></div>
+  <div class="card">${head}<div id="pad"></div><div id="fb"></div></div>
+  <div class="push" style="padding-top:18px"><button id="ok" ${g.id==="eye"?"":"hidden"}>Lock it in</button></div>`;
+  const pad=document.getElementById("pad"),ok=document.getElementById("ok");
+  const MAG=["1","10","100","1K","10K","100K","1M","10M","100M","1B","10B","100B","1T","10T","100T"];
+  const short=n=>{const u=[[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]];for(const[v,s]of u)if(n>=v)return (n/v)+s;return ""+n};
+  function draw(){
+    if(g.id==="ballpark"){
+      pad.innerHTML=stage===1
+        ?`<p class="step-l">1 · Pick the scale</p><div class="keys k5">${MAG.map((m,i)=>`<button class="key" data-k="${i}">${m}</button>`).join("")}</div>`
+        :`<p class="step-l">2 · Fine-tune <a href="#" id="bk">← change scale</a></p><div class="keys k3">${[1,2,3,4,5,6,7,8,9].map(d=>`<button class="key" data-d="${d}">${short(d*10**pre)}</button>`).join("")}</div>`;
+    }
+    if(g.id==="year"){
+      pad.innerHTML=stage===1
+        ?`<p class="step-l">1 · Pick the decade</p><div class="keys k4">${Array.from({length:14},(_,i)=>1890+i*10).map(d=>`<button class="key" data-k="${d}">${d}s</button>`).join("")}</div>`
+        :`<p class="step-l">2 · Pick the year <a href="#" id="bk">← change decade</a></p><div class="keys k5">${Array.from({length:10},(_,i)=>pre+i).filter(y=>y<=2025).map(y=>`<button class="key" data-d="${y}">${y}</button>`).join("")}</div>`;
+    }
+    pad.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{pre=+b.dataset.k;stage=2;draw()});
+    pad.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{guess=g.id==="ballpark"?(+b.dataset.d)*10**pre:+b.dataset.d;reveal()});
+    const bk=document.getElementById("bk");if(bk)bk.onclick=e=>{e.preventDefault();stage=1;draw()};
+  }
+  if(g.id==="eye"){
+    guess=null;pad.innerHTML=drawSvg(null,null);
+    const svg=pad.querySelector("svg");
+    const set=e=>{if(answered)return;const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)*280/r.width-140,y=200-(e.clientY-r.top)*210/r.height;
+      let a=Math.round(Math.atan2(Math.max(y,0),x)*180/Math.PI);guess=Math.min(179,Math.max(1,a));pad.innerHTML=drawSvg(guess,null);bind()};
+    const bind=()=>{const s=pad.querySelector("svg");s.onpointerdown=e=>{s.setPointerCapture(e.pointerId);set(e);s.onpointermove=set};s.onpointerup=()=>s.onpointermove=null};
+    bind();
+    ok.onclick=()=>{if(answered){next();return}if(guess==null){ok.textContent="Drag the line first";return}reveal()};
+  } else draw();
+  function reveal(){
+    answered=true;let p,msg,vis="";
+    if(g.id==="ballpark"){const e=Math.abs(Math.log10(guess/cur.a));p=Math.max(0,Math.round(100*(1-e/2)));
+      const lo=Math.min(guess,cur.a)/10,hi=Math.max(guess,cur.a)*10,f=x=>(Math.log(x)-Math.log(lo))/(Math.log(hi)-Math.log(lo));
+      vis=scale(f(guess),f(cur.a),fmt(cur.a),"You: "+fmt(guess));msg=`It's <b>${fmt(cur.a)}</b>. ${cur.note}`}
+    if(g.id==="eye"){const e=Math.abs(guess-cur);p=Math.max(0,Math.round(100-e*4));
+      pad.innerHTML=drawSvg(guess,cur);msg=e===0?`Exactly ${cur}°. Spot on!`:`You drew <b>${guess}°</b>, ${e}° off.`}
+    if(g.id==="year"){const e=Math.abs(guess-cur.a);p=Math.max(0,Math.round(100-e*3));
+      const lo=Math.min(guess,cur.a)-10,hi=Math.max(guess,cur.a)+10,f=x=>(x-lo)/(hi-lo);vis=scale(f(guess),f(cur.a),cur.a,"You: "+guess);
+      msg=e===0?`<b>${cur.a}</b>. Spot on!`:`It was <b>${cur.a}</b>. You were ${e} year${e===1?"":"s"} off.`}
+    pts[gi].push(p);
+    if(g.id!=="eye")pad.innerHTML="";
+    document.getElementById("fb").innerHTML=`${vis}<div class="fb"><span class="pts">+${p}</span><div><span class="verdict">${verdict(p)}</span><p>${msg}</p></div></div>`;
+    const last=gi===GAMES.length-1&&ri===ROUNDS-1;
+    ok.hidden=false;ok.textContent=last?"See my result":ri===ROUNDS-1?"Next game":"Next";ok.onclick=next;
+    if(p>=90)confetti(18);
+  }
+  function next(){ri++;if(ri>=ROUNDS){ri=0;gi++;gi>=GAMES.length?finish():intro()}else play()}
+}
+function drawSvg(you,ans){
+  const ox=140,oy=200,L=125,pt=d=>{const r=d*Math.PI/180;return [(ox+L*Math.cos(r)).toFixed(1),(oy-L*Math.sin(r)).toFixed(1)]};
+  const line=(d,st)=>{const[x,y]=pt(d);return `<path d="M${ox} ${oy} L${x} ${y}" ${st} stroke-linecap="round" fill="none"/>`};
+  return `<svg viewBox="0 0 280 210" width="100%" style="touch-action:none;cursor:crosshair;margin-top:8px" role="img" aria-label="Drawing area">
+   <path d="M15 ${oy} A${L} ${L} 0 0 1 265 ${oy}" fill="var(--cs)" stroke="none"/>
+   ${ans!=null?line(ans,'stroke="var(--c)" stroke-width="5" stroke-dasharray="8 7"'):""}
+   ${you!=null?line(you,'stroke="var(--ink)" stroke-width="6"'):`<text x="140" y="120" text-anchor="middle" font-size="14" fill="var(--mut)" font-weight="700">touch & drag here</text>`}
+   <path d="M${ox} ${oy} L${ox+L} ${oy}" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/>
+   <circle cx="${ox}" cy="${oy}" r="7" fill="var(--ink)"/>
+   ${ans!=null?`<text x="${pt(ans)[0]}" y="${+pt(ans)[1]-10}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--c)">${ans}°</text>`:""}</svg>`}
+function verdict(p){return p>=90?"Bullseye 🎯":p>=70?"Sharp 👀":p>=40?"Close-ish 🤏":"Way off 🙈"}
+function scale(you,ans,label,ylab){
+  const c=x=>Math.min(100,Math.max(0,x*100));const a=c(ans),y=c(you);
+  return `<div class="scale"><div class="tr"></div><div class="gap" style="left:${Math.min(a,y)}%;width:${Math.abs(a-y)}%"></div>
+  <div class="mk you" style="left:${y}%"><i></i>${ylab||"You"}</div><div class="mk ans" style="left:${a}%;--from:${y}%">${label}<i></i></div></div>`}
+function angleSvg(a,guess){
+  const L=120,ox=50,oy=160,pt=d=>{const r=d*Math.PI/180;return [ox+L*Math.cos(r),oy-L*Math.sin(r)].map(n=>n.toFixed(1)).join(" ")};
+  const arc=d=>{const r=d*Math.PI/180,R=34;return `M${ox+R} ${oy} A${R} ${R} 0 0 0 ${(ox+R*Math.cos(r)).toFixed(1)} ${(oy-R*Math.sin(r)).toFixed(1)}`};
+  return `<svg width="100%" height="190" viewBox="0 0 280 190" role="img" aria-label="An angle to estimate">
+   <path d="${arc(a)}" fill="none" stroke="var(--c)" stroke-width="6" stroke-linecap="round"/>
+   ${guess!=null?`<path d="M${ox} ${oy} L${pt(guess)}" stroke="var(--c)" stroke-width="4" stroke-dasharray="7 7" stroke-linecap="round" fill="none"/><text x="${pt(guess).split(" ")[0]}" y="${+pt(guess).split(" ")[1]-8}" font-size="13" font-weight="700" fill="var(--c)" text-anchor="middle">you</text>`:""}
+   <path d="M${ox+L} ${oy} L${ox} ${oy} L${pt(a)}" stroke="var(--ink)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+   <circle cx="${ox}" cy="${oy}" r="6" fill="var(--ink)"/></svg>`}
+
+// ---------- Result ----------
+function finish(){
+  const t=total();const st=store.get("streak",{n:0,last:""});
+  const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
+  if(st.last!==today){st.n=st.last===y?st.n+1:1;st.last=today;store.set("streak",st)}
+  store.set("done",{date:today,total:t,pts});
+  send("plays",{score:t,details:{date:today,ballpark:pts[0],angle:pts[1],year:pts[2]}});
+  result(pts,false);
+}
+function rank(t){return t>=1300?["Hawk","🦅"]:t>=1050?["Sharp","🎯"]:t>=750?["Steady","🧭"]:["Warming up","🌱"]}
+const sq=p=>p>=80?"🟩":p>=50?"🟨":p>=20?"🟧":"⬛";
+function result(P,again){
+  theme(null);
+  const t=P.flat().reduce((a,b)=>a+b,0),[rk,re]=rank(t),st=store.get("streak",{n:0});
+  const grid=GAMES.map((g,i)=>`${g.ic} ${P[i].map(sq).join("")}`).join("\n");
+  const share=`${NAME} · ${today}\n${re} ${rk} · ${t}/1500\n${grid}\n🔥 ${st.n}-day streak`;
+  const joined=store.get("joined",false);
+  app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
+  <div style="text-align:center;margin:26px 0 18px"><div style="font-size:56px">${re}</div>
+  <div class="score disp" id="sc">0</div><div class="mut" style="font-weight:700">out of 1500 · ${rk}</div></div>
+  <div class="card"><div class="bars">${GAMES.map((g,i)=>{const s=P[i].reduce((a,b)=>a+b,0);return `<div><span>${g.ic} ${g.short}</span><em><b style="background:var(${g.c})" data-w="${s/5}"></b></em><span>${s}</span></div>`}).join("")}</div>
+  <div class="grid" style="margin:14px 0 14px;text-align:center">${GAMES.map((g,i)=>P[i].map(sq).join("")).join("<br>")}</div>
+  <button id="cp">Share my score</button></div>
+  <div class="card" style="margin-top:18px;background:var(--g2s)"><h2>Want the full app?</h2>
+  <p>5 games including <b>Real or AI?</b> and <b>Guess the Accent</b>, streaks, leaderboards with friends and your weekly Pifometer profile.</p>
+  ${joined?`<p style="margin:0"><b>You're on the list ✔</b> We'll email you first.</p>`:`<form id="wl"><input type="email" required placeholder="you@email.com" aria-label="Email" autocomplete="email"><button>Get early access</button></form>`}</div>
+  <div class="sp"></div><button class="alt" id="back">Back home</button>`;
+  // animate
+  const el=document.getElementById("sc"),t0=performance.now(),rm=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const tick=n=>{const k=rm?1:Math.min(1,(n-t0)/900);el.textContent=Math.round(t*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+  requestAnimationFrame(()=>document.querySelectorAll(".bars b").forEach(b=>b.style.width=b.dataset.w+"%"));
+  if(!again&&t>=1050)confetti(40);
+  go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent="Copied ✔ Paste it anywhere"}}catch{}track("share")});
+  go("back",home);
+  const f=document.getElementById("wl");
+  if(f)f.onsubmit=async e=>{e.preventDefault();const em=f.querySelector("input").value;
+    const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:t});store.set("waitlist",list);
+    send("waitlist",{email:em,score:t});
+    store.set("joined",true);track("waitlist");result(P,true)};
+}
+function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
+  for(let i=0;i<n;i++){const s=document.createElement("i");s.style.left=Math.random()*100+"%";s.style.background=cols[i%4];s.style.animationDelay=Math.random()*.4+"s";c.appendChild(s)}
+  document.body.appendChild(c);setTimeout(()=>c.remove(),2200)}
+function track(ev){/* plug analytics here (Plausible / PostHog) */}
+home();
+</script>
+</body>
+</html>
