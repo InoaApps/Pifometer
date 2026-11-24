@@ -26,10 +26,11 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{touch-action:manipulation;-webkit-text-size-adjust:100%}
-body.hasbub{padding-top:calc(64px + env(safe-area-inset-top))}
-body.hasbub main{min-height:calc(100dvh - 64px - env(safe-area-inset-top))}
-#ibub{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:4;width:calc(100% - 24px);max-width:416px}
-#ibub button{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--ink);color:#fff;border-radius:99px;min-height:48px;font-size:15px;box-shadow:0 6px 0 rgba(0,0,0,.25),0 8px 24px rgba(28,20,51,.35)}
+body.hasbub{padding-top:calc(58px + env(safe-area-inset-top))}
+body.hasbub main{min-height:calc(100dvh - 58px - env(safe-area-inset-top))}
+#ibub{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:4;background:var(--ink);color:#fff;border-radius:99px;padding:6px 6px 6px 8px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;width:auto;min-height:0}
+#ibub img{width:28px;height:28px;border-radius:8px}
+#ibub .go{background:var(--g1);color:#fff;border-radius:99px;padding:7px 12px;font-weight:800}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,-apple-system,sans-serif;min-height:100dvh;padding:0 16px env(safe-area-inset-bottom);transition:background .4s}
 body.g{background:var(--c)}
@@ -397,7 +398,7 @@ function finish(){
   const t=total();const st=store.get("streak",{n:0,last:""});
   const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
   if(st.last!==today){st.n=st.last===y?st.n+1:1;st.last=today;store.set("streak",st)}
-  if(!CH)store.set("done",{date:today,total:t,pts});
+  store.set("played1",true);if(!CH)store.set("done",{date:today,total:t,pts});
   send("plays",{score:t,details:{date:seedDay,challenge:!!CH,ballpark:pts[0],angle:pts[1],year:pts[2]}});
   result(pts,false);
 }
@@ -443,21 +444,23 @@ function result(P,again){
 let deferredInstall=null;
 const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e});
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;showBubble()});
 addEventListener("appinstalled",()=>{markInstalled("appinstalled");showBubble()});
 addEventListener("gesturestart",e=>e.preventDefault());
 document.addEventListener("dblclick",e=>e.preventDefault());
+function installable(){return !!deferredInstall||isIOS()}
 function showBubble(){
   if(isStandalone()||store.get("installed",false)){document.getElementById("ibub")?.remove();document.body.classList.remove("hasbub");return}
-  if(document.getElementById("ibub"))return;
-  const d=document.createElement("div");d.id="ibub";d.innerHTML='<button class="instbtn">📲 Add Pifometer to your home screen</button>';
+  if(!store.get("played1",false)||!installable()||document.getElementById("ibub"))return; // only after the first session, only where install is possible
+  const d=document.createElement("button");d.id="ibub";d.className="instbtn";d.setAttribute("aria-label","Install the Pifometer app");
+  d.innerHTML='<img src="icon-192.png" alt="">Get the Pifometer app<span class="go">Install</span>';
   document.body.appendChild(d);document.body.classList.add("hasbub");
 }
 function initInstall(){
   showBubble();
   document.querySelectorAll(".instbtn").forEach(b=>b.onclick=async()=>{
-    if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice.catch(()=>{});deferredInstall=null;return}
-    const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Line\//i.test(navigator.userAgent);
+    if(deferredInstall){deferredInstall.prompt();const r=await deferredInstall.userChoice.catch(()=>null);deferredInstall=null;if(r&&r.outcome==="accepted"){markInstalled("prompt");showBubble()}return}
+    const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Twitter|Line\//i.test(navigator.userAgent);
     const s=document.createElement("div");s.className="sheet";
     s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2>${inApp?`<p><b>First, open this page in ${isIOS()?"Safari":"Chrome"}.</b> Tap the ⋯ or share icon in the corner and choose <b>Open in browser</b>. Installing isn't possible inside Instagram or TikTok.</p>`:`<ol>${isIOS()
       ?(navigator.share?"<li>Tap <b>Open share menu</b> below (or the Share button at the bottom of Safari).</li>":"<li>Tap the <b>Share</b> button at the bottom of Safari.</li>")+"<li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li>"
