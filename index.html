@@ -60,7 +60,11 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .key{min-height:48px;padding:8px 4px;font-size:16px;background:var(--cs);color:var(--ink);box-shadow:0 3px 0 var(--ink);border-radius:12px}
 .key:hover{background:var(--c);color:#fff}
 .step-l{font-weight:700;font-size:14px;margin:16px 0 0;display:flex;justify-content:space-between}.step-l a{color:var(--mut)}
-.sl{position:relative}
+.slrow{display:flex;align-items:center;gap:8px}
+.pm{width:44px;height:44px;min-height:44px;padding:0;flex:none;font-size:26px;line-height:1;background:var(--cs);color:var(--ink);border-radius:50%;box-shadow:0 3px 0 var(--ink)}
+.sl{position:relative;flex:1}
+.exact{background:none;border:0;box-shadow:none;color:var(--mut);text-decoration:underline;font-size:14px;min-height:36px;width:auto;padding:4px 8px;margin:0 auto;display:block}
+.xin{width:100%;font:inherit;font-size:20px;text-align:center;padding:10px;border-radius:12px;border:2px solid var(--ink);margin-top:6px}
 #mk{position:absolute;inset:0;pointer-events:none}
 .ansm{position:absolute;top:-22px;transform:translateX(-50%);text-align:center;font-size:12px;font-weight:800;color:var(--ink);white-space:nowrap;animation:pop .45s cubic-bezier(.2,.9,.3,1.5) both}
 .ansm i{display:block;width:6px;height:40px;margin:2px auto 0;border-radius:3px;background:var(--ink)}
@@ -287,10 +291,10 @@ function play(){
   if(g.id==="year")cur=sets.year[ri];
   let body="";
   if(g.id==="ballpark")body=`<p class="q">${cur.q}</p><div class="val" id="v"></div>
-    <div class="sl"><input id="s" type="range" min="0" max="1000" value="500" aria-label="Your estimate"><div id="mk"></div></div>
+    <div class="slrow"><button class="pm" id="mn" aria-label="Less">−</button><div class="sl"><input id="s" type="range" min="0" max="1000" value="500" aria-label="Your estimate"><div id="mk"></div></div><button class="pm" id="pl" aria-label="More">+</button></div>
     <div class="ends"><span>${fmt(cur.min)}</span><span>${fmt(cur.max)}</span></div>`;
   if(g.id==="year")body=`<p class="q">${cur.q}</p><p class="mut" style="margin:0">In which year?</p><div class="val" id="v"></div>
-    <div class="sl"><input id="s" type="range" min="1890" max="2025" value="1957" aria-label="Your estimate (year)"><div id="mk"></div></div>
+    <div class="slrow"><button class="pm" id="mn" aria-label="Less">−</button><div class="sl"><input id="s" type="range" min="1890" max="2025" value="1957" aria-label="Your estimate (year)"><div id="mk"></div></div><button class="pm" id="pl" aria-label="More">+</button></div>
     <div class="ends"><span>1890</span><span>2025</span></div>`;
   if(g.id==="eye")body=`<p class="q">Make a <span style="color:var(--c)">${cur}°</span> angle</p><p class="mut" style="margin:0">Tap where the line should point. Tap again to adjust.</p><div id="pad">${drawSvg(null,null)}</div>`;
   app.innerHTML=`<div class="hud"><span>${g.ic} ${g.short}</span><div class="dots">${Array.from({length:ROUNDS},(_,i)=>`<i class="${i<=ri?"on":""}"></i>`).join("")}</div><span>${total()}</span></div>
@@ -301,9 +305,24 @@ function play(){
   if(g.id!=="eye"){
     s=document.getElementById("s");const v=document.getElementById("v");
     lmin=Math.log(cur.min||1);lmax=Math.log(cur.max||1);
-    read=()=>g.id==="ballpark"?Math.exp(lmin+(s.value/1000)*(lmax-lmin)):+s.value;
+    let typed=null;read=()=>typed!=null?typed:g.id==="ballpark"?Math.exp(lmin+(s.value/1000)*(lmax-lmin)):+s.value;
     const show=()=>v.textContent=g.id==="ballpark"?"≈ "+fmt(read()):s.value;
-    s.oninput=show;show();
+    s.oninput=()=>{typed=null;show()};show();
+    // +/- buttons: small steps, hold to repeat
+    const step=d=>{typed=null;const st=g.id==="ballpark"?5:1;s.value=Math.min(+s.max,Math.max(+s.min,+s.value+d*st));show()};
+    const hold=(id,d)=>{const b=document.getElementById(id);let tm,iv;const stop=()=>{clearTimeout(tm);clearInterval(iv)};
+      b.onpointerdown=e=>{e.preventDefault();if(answered)return;step(d);tm=setTimeout(()=>{iv=setInterval(()=>step(d),70)},350)};
+      ["pointerup","pointerleave","pointercancel"].forEach(ev=>b["on"+ev]=stop)};
+    hold("mn",-1);hold("pl",1);
+    // exact value
+    const ex=document.createElement("button");ex.className="exact";ex.textContent="Type exact value";
+    document.querySelector(".ends").after(ex);
+    ex.onclick=()=>{if(answered)return;const inp=document.createElement("input");inp.className="xin";inp.type="text";inp.inputMode="decimal";inp.placeholder=g.id==="year"?"e.g. 1969":"e.g. 5800 or 5.8k or 2m";
+      ex.replaceWith(inp);inp.focus();
+      inp.oninput=()=>{const m=inp.value.trim().toLowerCase().replace(/,/g,"").match(/^([\d.]+)\s*(k|m|b|t)?$/);if(!m)return;
+        let n=parseFloat(m[1])*({k:1e3,m:1e6,b:1e9,t:1e12}[m[2]]||1);
+        if(g.id==="ballpark"){n=Math.min(cur.max,Math.max(cur.min,n));s.value=Math.round((Math.log(n)-lmin)/(lmax-lmin)*1000)}else{s.value=Math.min(2025,Math.max(1890,Math.round(n)))}
+        typed=g.id==="ballpark"?n:null;show()}};
   } else {
     const pad=document.getElementById("pad");
     pad.addEventListener("pointerdown",e=>{
