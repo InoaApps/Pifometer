@@ -26,9 +26,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{touch-action:manipulation;-webkit-text-size-adjust:100%}
-body.hasbub{padding-top:calc(58px + env(safe-area-inset-top))}
-body.hasbub main{min-height:calc(100dvh - 58px - env(safe-area-inset-top))}
-#ibub{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:4;background:var(--ink);color:#fff;border-radius:99px;padding:6px 6px 6px 8px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;width:auto;min-height:0}
+body.hasbub{padding-top:max(66px,calc(env(safe-area-inset-top) + 56px))}
+body.hasbub main{min-height:calc(100dvh - max(66px,calc(env(safe-area-inset-top) + 56px)))}
+#ibub{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:20;background:var(--ink);color:#fff;border-radius:99px;padding:6px 6px 6px 8px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;width:auto;min-height:0}
 #ibub img{width:28px;height:28px;border-radius:8px}
 #ibub .go{background:var(--g1);color:#fff;border-radius:99px;padding:7px 12px;font-weight:800}
 html,body{margin:0}
@@ -453,7 +453,7 @@ function showBubble(){
   if(isStandalone()||store.get("installed",false)){document.getElementById("ibub")?.remove();document.body.classList.remove("hasbub");return}
   if(!store.get("played1",false)||!installable()||document.getElementById("ibub"))return; // only after the first session, only where install is possible
   const d=document.createElement("button");d.id="ibub";d.className="instbtn";d.setAttribute("aria-label","Install the Pifometer app");
-  d.innerHTML='<img src="icon-192.png" alt="">Get the Pifometer app<span class="go">Install</span>';
+  d.innerHTML='<img src="icon-192.png" alt="">Get the app<span class="go">Install</span>';
   document.body.appendChild(d);document.body.classList.add("hasbub");
 }
 function initInstall(){
@@ -462,9 +462,10 @@ function initInstall(){
     if(deferredInstall){deferredInstall.prompt();const r=await deferredInstall.userChoice.catch(()=>null);deferredInstall=null;if(r&&r.outcome==="accepted"){markInstalled("prompt");showBubble()}return}
     const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Twitter|Line\//i.test(navigator.userAgent);
     const s=document.createElement("div");s.className="sheet";
-    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2>${inApp?`<p><b>First, open this page in ${isIOS()?"Safari":"Chrome"}.</b> Tap the ⋯ or share icon in the corner and choose <b>Open in browser</b>. Installing isn't possible inside Instagram or TikTok.</p>`:`<ol>${isIOS()
-      ?(navigator.share?"<li>Tap <b>Open share menu</b> below (or the Share button at the bottom of Safari).</li>":"<li>Tap the <b>Share</b> button at the bottom of Safari.</li>")+"<li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li>"
-      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol>${isIOS()&&navigator.share?'<button id="shr">Open share menu</button><div class="sp"></div>':""}`}<button id="sx" class="alt">Got it</button></div>`;
+    const canShare=isIOS()&&navigator.share&&!inApp;
+    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2>${inApp?`<p><b>First, open this page in Safari:</b> tap the <b>•••</b> menu, then <b>Open in browser</b>.</p>`:""}<ol>${isIOS()
+      ?'<li>Tap the <b>Share</b> button <span aria-hidden="true">⬆️</span> at the bottom of Safari</li><li>Scroll down and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li>'
+      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol>${canShare?'<button id="shr">Open share menu</button><div class="sp"></div>':""}<button id="sx" class="alt">Got it</button></div>`;
     document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
 }
 if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
@@ -473,7 +474,7 @@ function confetti(n){const c=document.createElement("div");c.className="confetti
   document.body.appendChild(c);setTimeout(()=>c.remove(),2200)}
 function track(name,details){send("events",{name,details:details||null})}
 function markInstalled(via){store.set("installed",true);if(!store.get("inst_sent",false)){store.set("inst_sent",true);track("install",{via})}}
-if(isStandalone())markInstalled("standalone");
+if(isStandalone()){markInstalled("standalone");if(store.get("io","")!==today){store.set("io",today);track("open_installed")}}
 home();
 </script>
 </body>
