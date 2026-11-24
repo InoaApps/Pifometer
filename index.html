@@ -50,7 +50,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .dots i{flex:1;height:8px;border-radius:9px;background:rgba(255,255,255,.35)}
 .dots i.on{background:#fff}
 .q{font-family:var(--disp);font-weight:800;font-size:27px;line-height:1.12;margin:0 0 6px}
-.val{font-family:var(--disp);font-weight:800;font-size:52px;text-align:center;line-height:1;margin:18px 0 6px;color:var(--c);font-variant-numeric:tabular-nums}
+.val{font-family:var(--disp);font-weight:800;font-size:52px;text-align:center;line-height:1;margin:18px 0 30px;color:var(--c);font-variant-numeric:tabular-nums}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:8px 0}
 input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:9px;background:var(--cs);border:2px solid var(--ink)}
 input[type=range]::-moz-range-track{height:14px;border-radius:9px;background:var(--cs);border:2px solid var(--ink)}
@@ -60,6 +60,11 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .key{min-height:48px;padding:8px 4px;font-size:16px;background:var(--cs);color:var(--ink);box-shadow:0 3px 0 var(--ink);border-radius:12px}
 .key:hover{background:var(--c);color:#fff}
 .step-l{font-weight:700;font-size:14px;margin:16px 0 0;display:flex;justify-content:space-between}.step-l a{color:var(--mut)}
+.sl{position:relative}
+#mk{position:absolute;inset:0;pointer-events:none}
+.ansm{position:absolute;top:-22px;transform:translateX(-50%);text-align:center;font-size:12px;font-weight:800;color:var(--ink);white-space:nowrap;animation:pop .45s cubic-bezier(.2,.9,.3,1.5) both}
+.ansm i{display:block;width:6px;height:40px;margin:2px auto 0;border-radius:3px;background:var(--ink)}
+.gapb{position:absolute;top:17px;height:14px;background:var(--c);opacity:.45;border-radius:9px}
 .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);font-weight:500}
 /* reveal scale */
 .scale{position:relative;height:76px;margin:14px 6px 4px}
@@ -108,9 +113,9 @@ const APP_ID = "sharp-games";
 function send(table,row){try{fetch(SB_URL+"/rest/v1/"+table,{method:"POST",keepalive:true,headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({app:APP_ID,player_id:PLAYER,...row})}).catch(()=>{})}catch{}}
 const ROUNDS = 5;
 const GAMES = [
-  {id:"ballpark", title:"Ballpark", ic:"🎯", rule:"Big numbers, no calculator. Pick the scale, then fine-tune.", c:"--g1", cs:"--g1s", short:"Ballpark"},
-  {id:"eye", title:"Right Angle", ic:"📐", rule:"We give you an angle. Draw it by eye, no protractor.", c:"--g2", cs:"--g2s", short:"Right Angle"},
-  {id:"year", title:"What Year?", ic:"📅", rule:"Pick the decade, then the year. Every year off costs points.", c:"--g3", cs:"--g3s", short:"What Year?"}
+  {id:"ballpark", title:"Ballpark", ic:"🎯", rule:"Big numbers, no calculator. Slide to your best guess.", c:"--g1", cs:"--g1s", short:"Ballpark"},
+  {id:"eye", title:"Right Angle", ic:"📐", rule:"We give you an angle. Make it by eye, no protractor.", c:"--g2", cs:"--g2s", short:"Right Angle"},
+  {id:"year", title:"What Year?", ic:"📅", rule:"Slide to the year. Every year off costs points.", c:"--g3", cs:"--g3s", short:"What Year?"}
 ];
 
 // ---------- Daily seed (same questions for everyone) ----------
@@ -276,57 +281,59 @@ function intro(){
 
 // ---------- Round ----------
 function play(){
-  const g=GAMES[gi];answered=false;let guess=null,stage=1,pre=null;
+  const g=GAMES[gi];answered=false;let guess=null;
   if(g.id==="ballpark")cur=sets.ballpark[ri];
   if(g.id==="eye")cur=sets.eye[ri];
   if(g.id==="year")cur=sets.year[ri];
-  const head=g.id==="ballpark"?`<p class="q">${cur.q}</p>`:g.id==="year"?`<p class="q">${cur.q}</p><p class="mut" style="margin:0">In which year?</p>`:`<p class="q">Draw a <span style="color:var(--c)">${cur}°</span> angle</p><p class="mut" style="margin:0">Drag the line with your finger. No protractor!</p>`;
+  let body="";
+  if(g.id==="ballpark")body=`<p class="q">${cur.q}</p><div class="val" id="v"></div>
+    <div class="sl"><input id="s" type="range" min="0" max="1000" value="500" aria-label="Your estimate"><div id="mk"></div></div>
+    <div class="ends"><span>${fmt(cur.min)}</span><span>${fmt(cur.max)}</span></div>`;
+  if(g.id==="year")body=`<p class="q">${cur.q}</p><p class="mut" style="margin:0">In which year?</p><div class="val" id="v"></div>
+    <div class="sl"><input id="s" type="range" min="1890" max="2025" value="1957" aria-label="Your estimate (year)"><div id="mk"></div></div>
+    <div class="ends"><span>1890</span><span>2025</span></div>`;
+  if(g.id==="eye")body=`<p class="q">Make a <span style="color:var(--c)">${cur}°</span> angle</p><p class="mut" style="margin:0">Tap where the line should point. Tap again to adjust.</p><div id="pad">${drawSvg(null,null)}</div>`;
   app.innerHTML=`<div class="hud"><span>${g.ic} ${g.short}</span><div class="dots">${Array.from({length:ROUNDS},(_,i)=>`<i class="${i<=ri?"on":""}"></i>`).join("")}</div><span>${total()}</span></div>
-  <div class="card">${head}<div id="pad"></div><div id="fb"></div></div>
-  <div class="push" style="padding-top:18px"><button id="ok" ${g.id==="eye"?"":"hidden"}>Lock it in</button></div>`;
-  const pad=document.getElementById("pad"),ok=document.getElementById("ok");
-  const MAG=["1","10","100","1K","10K","100K","1M","10M","100M","1B","10B","100B","1T","10T","100T"];
-  const short=n=>{const u=[[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]];for(const[v,s]of u)if(n>=v)return (n/v)+s;return ""+n};
-  function draw(){
-    if(g.id==="ballpark"){
-      pad.innerHTML=stage===1
-        ?`<p class="step-l">1 · Pick the scale</p><div class="keys k5">${MAG.map((m,i)=>`<button class="key" data-k="${i}">${m}</button>`).join("")}</div>`
-        :`<p class="step-l">2 · Fine-tune <a href="#" id="bk">← change scale</a></p><div class="keys k3">${[1,2,3,4,5,6,7,8,9].map(d=>`<button class="key" data-d="${d}">${short(d*10**pre)}</button>`).join("")}</div>`;
-    }
-    if(g.id==="year"){
-      pad.innerHTML=stage===1
-        ?`<p class="step-l">1 · Pick the decade</p><div class="keys k4">${Array.from({length:14},(_,i)=>1890+i*10).map(d=>`<button class="key" data-k="${d}">${d}s</button>`).join("")}</div>`
-        :`<p class="step-l">2 · Pick the year <a href="#" id="bk">← change decade</a></p><div class="keys k5">${Array.from({length:10},(_,i)=>pre+i).filter(y=>y<=2025).map(y=>`<button class="key" data-d="${y}">${y}</button>`).join("")}</div>`;
-    }
-    pad.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{pre=+b.dataset.k;stage=2;draw()});
-    pad.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{guess=g.id==="ballpark"?(+b.dataset.d)*10**pre:+b.dataset.d;reveal()});
-    const bk=document.getElementById("bk");if(bk)bk.onclick=e=>{e.preventDefault();stage=1;draw()};
+  <div class="card">${body}<div id="fb"></div></div>
+  <div class="push" style="padding-top:18px"><button id="ok">Lock it in</button></div>`;
+  const ok=document.getElementById("ok");
+  let s,lmin,lmax,read;
+  if(g.id!=="eye"){
+    s=document.getElementById("s");const v=document.getElementById("v");
+    lmin=Math.log(cur.min||1);lmax=Math.log(cur.max||1);
+    read=()=>g.id==="ballpark"?Math.exp(lmin+(s.value/1000)*(lmax-lmin)):+s.value;
+    const show=()=>v.textContent=g.id==="ballpark"?"≈ "+fmt(read()):s.value;
+    s.oninput=show;show();
+  } else {
+    const pad=document.getElementById("pad");
+    pad.addEventListener("pointerdown",e=>{
+      if(answered)return;const svg=pad.querySelector("svg"),r=svg.getBoundingClientRect();
+      const x=(e.clientX-r.left)*280/r.width-140,y=200-(e.clientY-r.top)*210/r.height;
+      guess=Math.min(179,Math.max(1,Math.round(Math.atan2(Math.max(y,0),x)*180/Math.PI)));
+      pad.innerHTML=drawSvg(guess,null);ok.textContent="Lock it in";
+    });
   }
-  if(g.id==="eye"){
-    guess=null;pad.innerHTML=drawSvg(null,null);
-    const svg=pad.querySelector("svg");
-    const set=e=>{if(answered)return;const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)*280/r.width-140,y=200-(e.clientY-r.top)*210/r.height;
-      let a=Math.round(Math.atan2(Math.max(y,0),x)*180/Math.PI);guess=Math.min(179,Math.max(1,a));pad.innerHTML=drawSvg(guess,null);bind()};
-    const bind=()=>{const s=pad.querySelector("svg");s.onpointerdown=e=>{s.setPointerCapture(e.pointerId);set(e);s.onpointermove=set};s.onpointerup=()=>s.onpointermove=null};
-    bind();
-    ok.onclick=()=>{if(answered){next();return}if(guess==null){ok.textContent="Drag the line first";return}reveal()};
-  } else draw();
-  function reveal(){
-    answered=true;let p,msg,vis="";
-    if(g.id==="ballpark"){const e=Math.abs(Math.log10(guess/cur.a));p=Math.max(0,Math.round(100*(1-e/2)));
-      const lo=Math.min(guess,cur.a)/10,hi=Math.max(guess,cur.a)*10,f=x=>(Math.log(x)-Math.log(lo))/(Math.log(hi)-Math.log(lo));
-      vis=scale(f(guess),f(cur.a),fmt(cur.a),"You: "+fmt(guess));msg=`It's <b>${fmt(cur.a)}</b>. ${cur.note}`}
+  ok.onclick=()=>{
+    if(answered){next();return}
+    if(g.id==="eye"&&guess==null){ok.textContent="Tap the drawing first";return}
+    answered=true;let p,msg;
+    if(g.id==="ballpark"){guess=read();const e=Math.abs(Math.log10(guess/cur.a));p=Math.max(0,Math.round(100*(1-e/2)));
+      marker((Math.log(cur.a)-lmin)/(lmax-lmin),fmt(cur.a));msg=`It's <b>${fmt(cur.a)}</b>. ${cur.note}`}
+    if(g.id==="year"){guess=+s.value;const e=Math.abs(guess-cur.a);p=Math.max(0,Math.round(100-e*3));
+      marker((cur.a-1890)/135,cur.a);msg=e===0?`<b>${cur.a}</b>. Spot on!`:`It was <b>${cur.a}</b>. You were ${e} year${e===1?"":"s"} off.`}
     if(g.id==="eye"){const e=Math.abs(guess-cur);p=Math.max(0,Math.round(100-e*4));
-      pad.innerHTML=drawSvg(guess,cur);msg=e===0?`Exactly ${cur}°. Spot on!`:`You drew <b>${guess}°</b>, ${e}° off.`}
-    if(g.id==="year"){const e=Math.abs(guess-cur.a);p=Math.max(0,Math.round(100-e*3));
-      const lo=Math.min(guess,cur.a)-10,hi=Math.max(guess,cur.a)+10,f=x=>(x-lo)/(hi-lo);vis=scale(f(guess),f(cur.a),cur.a,"You: "+guess);
-      msg=e===0?`<b>${cur.a}</b>. Spot on!`:`It was <b>${cur.a}</b>. You were ${e} year${e===1?"":"s"} off.`}
+      document.getElementById("pad").innerHTML=drawSvg(guess,cur);msg=e===0?`Exactly ${cur}°. Spot on!`:`You made <b>${guess}°</b>, ${e}° off.`}
+    if(s)s.disabled=true;
     pts[gi].push(p);
-    if(g.id!=="eye")pad.innerHTML="";
-    document.getElementById("fb").innerHTML=`${vis}<div class="fb"><span class="pts">+${p}</span><div><span class="verdict">${verdict(p)}</span><p>${msg}</p></div></div>`;
+    document.getElementById("fb").innerHTML=`<div class="fb"><span class="pts">+${p}</span><div><span class="verdict">${verdict(p)}</span><p>${msg}</p></div></div>`;
     const last=gi===GAMES.length-1&&ri===ROUNDS-1;
-    ok.hidden=false;ok.textContent=last?"See my result":ri===ROUNDS-1?"Next game":"Next";ok.onclick=next;
+    ok.textContent=last?"See my result":ri===ROUNDS-1?"Next game":"Next";
     if(p>=90)confetti(18);
+  };
+  function marker(f,label){
+    f=Math.min(1,Math.max(0,f));const gf=(s.value-s.min)/(s.max-s.min);
+    const pos=x=>`calc(${x*100}% + ${17-34*x}px)`;
+    document.getElementById("mk").innerHTML=`<div class="gapb" style="left:${pos(Math.min(f,gf))};width:calc(${Math.abs(f-gf)*100}% - ${Math.abs(f-gf)*34}px)"></div><div class="ansm" style="left:${pos(f)}"><span>${label}</span><i></i></div>`;
   }
   function next(){ri++;if(ri>=ROUNDS){ri=0;gi++;gi>=GAMES.length?finish():intro()}else play()}
 }
@@ -336,7 +343,7 @@ function drawSvg(you,ans){
   return `<svg viewBox="0 0 280 210" width="100%" style="touch-action:none;cursor:crosshair;margin-top:8px" role="img" aria-label="Drawing area">
    <path d="M15 ${oy} A${L} ${L} 0 0 1 265 ${oy}" fill="var(--cs)" stroke="none"/>
    ${ans!=null?line(ans,'stroke="var(--c)" stroke-width="5" stroke-dasharray="8 7"'):""}
-   ${you!=null?line(you,'stroke="var(--ink)" stroke-width="6"'):`<text x="140" y="120" text-anchor="middle" font-size="14" fill="var(--mut)" font-weight="700">touch & drag here</text>`}
+   ${you!=null?line(you,'stroke="var(--ink)" stroke-width="6"'):`<text x="140" y="120" text-anchor="middle" font-size="14" fill="var(--mut)" font-weight="700">tap where the line should point</text>`}
    <path d="M${ox} ${oy} L${ox+L} ${oy}" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/>
    <circle cx="${ox}" cy="${oy}" r="7" fill="var(--ink)"/>
    ${ans!=null?`<text x="${pt(ans)[0]}" y="${+pt(ans)[1]-10}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--c)">${ans}°</text>`:""}</svg>`}
