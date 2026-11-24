@@ -118,6 +118,10 @@ input[type=email]{width:100%;font:inherit;padding:14px;border-radius:14px;border
 .inst{margin-top:12px}.inst button{background:var(--card);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
 .sheet{position:fixed;inset:0;background:rgba(28,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:5}
 .sheet>div{background:var(--card);border:2px solid var(--ink);border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-width:440px;width:100%}
+.lsw{display:inline-flex;align-items:center;gap:2px;font-size:13px;color:var(--mut)}
+.lsw button{all:unset;cursor:pointer;padding:6px 5px;font-weight:700;color:var(--mut);font-size:13px}
+.lsw button.on{color:var(--ink);font-weight:800;text-decoration:underline}
+.lsw i{font-style:normal;opacity:.5}.lsw i.gap{width:10px}
 .sheet ol{padding-left:1.2em;margin:0 0 14px}.sheet li{margin-bottom:8px}
 </style>
 </head>
@@ -130,11 +134,101 @@ const SB_URL = "https://mgfishwtcbpsuqdbhpia.supabase.co"; // Supabase project "
 const SB_KEY = "sb_publishable_X0ga4Q-22xxn8L-z6eTVCw_xr7CCDdc"; // public key: insert-only, cannot read data
 const APP_ID = "pifometer";
 function send(table,row){try{fetch(SB_URL+"/rest/v1/"+table,{method:"POST",keepalive:true,headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({app:APP_ID,player_id:PLAYER,...row})}).catch(()=>{})}catch{}}
+// ---------- Language and units ----------
+let LANG="en",SYS="imp";
+try{
+  const qs=new URLSearchParams(location.search).get("lang"),sl=JSON.parse(localStorage.getItem("lang")),su=JSON.parse(localStorage.getItem("units"));
+  const nav=(navigator.language||"en").toLowerCase();
+  LANG=(sl==="fr"||sl==="en")?sl:(qs==="fr"||qs==="en")?qs:nav.startsWith("fr")?"fr":"en";
+  SYS=(su==="imp"||su==="met")?su:(LANG==="fr"?"met":/-us$/.test(nav)?"imp":"met");
+}catch{}
+document.documentElement.lang=LANG;
+const T={
+en:{
+ title:"Pifometer – Daily Guessing Games",
+ gb:"Ballpark",gbr:"Big numbers, no calculator. Slide to your best guess.",
+ ge:"Right Angle",ger:"We give you an angle. Make it by eye, no protractor.",
+ gy:"What Year?",gyr:"Slide to the year. Every year off costs points.",
+ h1:"How good is your gut?",sub:"3 quick games, 3 minutes a day. Same questions for everyone, so you can compare with friends.",
+ chal:s=>`🥊 A friend scored <b>${s}</b>/1500. Beat them on the same questions!`,
+ seeRes:n=>`See today's result · ${n}`,doneMsg:"Today's round is done. New questions tomorrow 🌅",
+ takeCh:"Take the challenge",playToday:"Play today's round",
+ gameOf:n=>`Game ${n} of 3`,letsgo:"Let's go",
+ exact:"Type exact value",phYear:"e.g. 1969",phNum:"Type a number, e.g. 5800",ariaEst:"Your estimate",ariaYear:"Your estimate (year)",
+ whichYear:"In which year?",angleQ:a=>`Make a <span style="color:var(--c)">${a}°</span> angle`,angleHint:"Tap where the line should point. Tap again to adjust.",
+ svgTap:"tap where the line should point",ariaDraw:"Drawing area",ariaAngle:"An angle to estimate",
+ lock:"Lock it in",tapFirst:"Tap the drawing first",seeMy:"See my result",nextGame:"Next game",next:"Next",
+ itsF:(f,n)=>`It's <b>${f}</b>. ${n}`,
+ yearExact:a=>`<b>${a}</b>. Spot on!`,yearOff:(a,e)=>`It was <b>${a}</b>. You were ${e} year${e===1?"":"s"} off.`,
+ angExact:a=>`Exactly ${a}°. Spot on!`,angOff:(g,e)=>`You made <b>${g}°</b>, ${e}° off.`,
+ v:["Bullseye 🎯","Sharp 👀","Close-ish 🤏","Way off 🙈"],
+ rk:["Hawk","Sharp","Steady","Warming up"],
+ outOf:"out of 1500",beat:"🏆 You beat your friend",tie:"🤝 It's a tie",lose:"😅 Your friend wins",
+ chBtn:"Challenge a friend",shBtn:"Share my score",copied:"Copied ✔ Paste it anywhere",linkCopied:"Link copied ✔ Send it to a friend",
+ shareTxt:(n,d,re,rk,t,grid,st)=>`${n} · ${d}\n${re} ${rk} · ${t}/1500\n${grid}\n🔥 ${st}-day streak`,
+ chMsg:(t,n)=>`I got ${t}/1500 on ${n}. Beat me on the same questions 👇`,
+ offH:"Come back tomorrow, or get more",offP:"One round a day is the free demo. Leave your email and we'll tell you first when the full app opens.",
+ ph:"you@email.com",ariaEmail:"Email",early:"Get early access",onList:"You're on the list ✔",
+ soon:"<b>Coming soon.</b> Nothing was charged. We'll email you before launch with your founder price.",
+ fp:"Founder price:",price:"$14.99/year",old:"$29.99",
+ perks:["Play as many rounds as you want, every day","See your progress, week after week","Find out if you over- or underestimate (your gut profile)","Miss a day without losing your streak","Pick your challenge: Easy, Normal or Hard"],
+ getFp:"Get the founder price",back:"Back home",
+ bubble:"Get the app",inst:"Install",ariaInst:"Install the Pifometer app",
+ sheetH:"Add Pifometer to your home screen",
+ inApp:"<b>First, open this page in Safari:</b> tap the <b>•••</b> menu, then <b>Open in browser</b>.",
+ ios:['Tap the <b>Share</b> button <span aria-hidden="true">⬆️</span> at the bottom of Safari','Scroll down and tap <b>Add to Home Screen</b>','Tap <b>Add</b>'],
+ and:["Open your browser menu (⋮).","Tap <b>Add to Home screen</b> or <b>Install app</b>."],
+ shareMenu:"Open share menu",gotIt:"Got it"},
+fr:{
+ title:"Pifometer – Jeux d'estimation quotidiens",
+ gb:"À vue de nez",gbr:"De grands nombres, sans calculatrice. Glisse jusqu'à ta meilleure estimation.",
+ ge:"Bon angle",ger:"On te donne un angle. Trace-le à l'œil, sans rapporteur.",
+ gy:"Quelle année ?",gyr:"Glisse jusqu'à l'année. Chaque année d'écart coûte des points.",
+ h1:"Quel est ton niveau de pifomètre ?",sub:"3 jeux rapides, 3 minutes par jour. Mêmes questions pour tout le monde, pour te comparer à tes amis.",
+ chal:s=>`🥊 Un ami a fait <b>${s}</b>/1500. Bats-le sur les mêmes questions !`,
+ seeRes:n=>`Voir le résultat du jour · ${n}`,doneMsg:"Le tour du jour est terminé. Nouvelles questions demain 🌅",
+ takeCh:"Relever le défi",playToday:"Jouer le tour du jour",
+ gameOf:n=>`Jeu ${n} sur 3`,letsgo:"C'est parti",
+ exact:"Saisir la valeur exacte",phYear:"ex. 1969",phNum:"Tape un nombre, ex. 5800",ariaEst:"Ton estimation",ariaYear:"Ton estimation (année)",
+ whichYear:"En quelle année ?",angleQ:a=>`Fais un angle de <span style="color:var(--c)">${a}°</span>`,angleHint:"Touche où la ligne doit pointer. Touche encore pour ajuster.",
+ svgTap:"touche où la ligne doit pointer",ariaDraw:"Zone de dessin",ariaAngle:"Un angle à estimer",
+ lock:"Valider",tapFirst:"Touche d'abord le dessin",seeMy:"Voir mon résultat",nextGame:"Jeu suivant",next:"Suivant",
+ itsF:(f,n)=>`C'est <b>${f}</b>. ${n}`,
+ yearExact:a=>`<b>${a}</b>. Pile dedans !`,yearOff:(a,e)=>`C'était <b>${a}</b>. Tu étais à ${e} an${e===1?"":"s"} près.`,
+ angExact:a=>`Exactement ${a}°. Pile dedans !`,angOff:(g,e)=>`Tu as fait <b>${g}°</b>, ${e}° d'écart.`,
+ v:["En plein dans le mille 🎯","Affûté 👀","Pas mal 🤏","Très loin 🙈"],
+ rk:["Faucon","Affûté","Régulier","Échauffement"],
+ outOf:"sur 1500",beat:"🏆 Tu as battu ton ami",tie:"🤝 Égalité",lose:"😅 Ton ami gagne",
+ chBtn:"Défier un ami",shBtn:"Partager mon score",copied:"Copié ✔ Colle-le où tu veux",linkCopied:"Lien copié ✔ Envoie-le à un ami",
+ shareTxt:(n,d,re,rk,t,grid,st)=>`${n} · ${d}\n${re} ${rk} · ${t}/1500\n${grid}\n🔥 série de ${st} jour${st>1?"s":""}`,
+ chMsg:(t,n)=>`J'ai fait ${t}/1500 sur ${n}. Bats-moi sur les mêmes questions 👇`,
+ offH:"Reviens demain, ou va plus loin",offP:"Un tour par jour, c'est la démo gratuite. Laisse ton email et on te prévient en premier à l'ouverture de l'appli complète.",
+ ph:"toi@email.fr",ariaEmail:"Email",early:"Accès anticipé",onList:"Tu es sur la liste ✔",
+ soon:"<b>Bientôt disponible.</b> Rien n'a été débité. On t'écrit avant le lancement avec ton prix fondateur.",
+ fp:"Prix fondateur :",price:"14,99 $/an",old:"29,99 $",
+ perks:["Joue autant de tours que tu veux, chaque jour","Vois ta progression, semaine après semaine","Découvre si tu sous-estimes ou surestimes (ton profil pifomètre)","Rate un jour sans perdre ta série","Choisis ton défi : Facile, Normal ou Difficile"],
+ getFp:"Obtenir le prix fondateur",back:"Retour à l'accueil",
+ bubble:"Obtenir l'appli",inst:"Installer",ariaInst:"Installer l'appli Pifometer",
+ sheetH:"Ajouter Pifometer à l'écran d'accueil",
+ inApp:"<b>D'abord, ouvre cette page dans Safari :</b> touche le menu <b>•••</b>, puis <b>Ouvrir dans le navigateur</b>.",
+ ios:['Touche le bouton <b>Partager</b> <span aria-hidden="true">⬆️</span> en bas de Safari',"Fais défiler et touche <b>Sur l'écran d'accueil</b>","Touche <b>Ajouter</b>"],
+ and:["Ouvre le menu de ton navigateur (⋮).","Touche <b>Ajouter à l'écran d'accueil</b> ou <b>Installer l'application</b>."],
+ shareMenu:"Ouvrir le menu Partager",gotIt:"Compris"}};
+const t=(k,...a)=>{const v=T[LANG][k]??T.en[k];return typeof v==="function"?v(...a):v};
+document.title=t("title");
+function setPref(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}location.reload()}
+function selHTML(){const b=(on,k,v,l)=>`<button type="button" data-k="${k}" data-v="${v}" class="${on?"on":""}" aria-pressed="${on}">${l}</button>`;
+  return `<span class="lsw">${b(LANG==="en","lang","en","EN")}<i>|</i>${b(LANG==="fr","lang","fr","FR")}<i class="gap"></i>${b(SYS==="imp","units","imp","mi")}<i>|</i>${b(SYS==="met","units","met","km")}</span>`}
+function bindSel(r){(r||document).querySelectorAll(".lsw button").forEach(b=>b.onclick=()=>setPref(b.dataset.k,b.dataset.v))}
+const fmt=n=>{const L=LANG==="fr"?"fr":"en",f=(x,d)=>x.toLocaleString(L,{maximumFractionDigits:d}),w=LANG==="fr"
+  ?[["billion","billions"],["milliard","milliards"],["million","millions"]]:[["trillion","trillion"],["billion","billion"],["million","million"]];
+  const s=(v,x)=>f(v,1)+" "+(LANG==="fr"&&Math.abs(v)<2?x[0]:x[1]);
+  return n>=1e12?s(n/1e12,w[0]):n>=1e9?s(n/1e9,w[1]):n>=1e6?s(n/1e6,w[2]):f(n,0)};
 const ROUNDS = 5;
 const GAMES = [
-  {id:"ballpark", title:"Ballpark", ic:"🎯", rule:"Big numbers, no calculator. Slide to your best guess.", c:"--g1", cs:"--g1s", short:"Ballpark"},
-  {id:"eye", title:"Right Angle", ic:"📐", rule:"We give you an angle. Make it by eye, no protractor.", c:"--g2", cs:"--g2s", short:"Right Angle"},
-  {id:"year", title:"What Year?", ic:"📅", rule:"Slide to the year. Every year off costs points.", c:"--g3", cs:"--g3s", short:"What Year?"}
+  {id:"ballpark", title:t("gb"), ic:"🎯", rule:t("gbr"), c:"--g1", cs:"--g1s", short:t("gb")},
+  {id:"eye", title:t("ge"), ic:"📐", rule:t("ger"), c:"--g2", cs:"--g2s", short:t("ge")},
+  {id:"year", title:t("gy"), ic:"📅", rule:t("gyr"), c:"--g3", cs:"--g3s", short:t("gy").replace(" ?","")}
 ];
 
 // ---------- Daily seed (same questions for everyone) ----------
@@ -146,123 +240,120 @@ function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h
   return ()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
 const R = rng(seedDay);
 const pick=(a,n)=>{const c=[...a],o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(R()*c.length),1)[0]);return o};
-const fmt=n=>n>=1e12?(n/1e12).toLocaleString("en",{maximumFractionDigits:1})+" trillion":n>=1e9?(n/1e9).toLocaleString("en",{maximumFractionDigits:1})+" billion":n>=1e6?(n/1e6).toLocaleString("en",{maximumFractionDigits:1})+" million":n.toLocaleString("en",{maximumFractionDigits:0});
 
 // ---------- Content ----------
-const BALL=[
- {q:"How far is the Moon from Earth, in miles?",a:238855,min:1e3,max:1e8,note:"About 239,000 miles, 30 Earths lined up."},
- {q:"How many seconds are in a year?",a:31536000,min:1e4,max:1e10,note:"A million seconds is only 11.5 days."},
- {q:"How tall is the Eiffel Tower, in feet?",a:1083,min:10,max:1e4,note:"1,083 ft including its antennas."},
- {q:"How tall is Mount Everest, in feet?",a:29032,min:100,max:1e5,note:"29,032 ft above sea level."},
- {q:"How much does a blue whale weigh, in pounds?",a:330000,min:200,max:1e8,note:"Up to about 330,000 lb, around 165 tons."},
- {q:"How many people live on Earth?",a:8100000000,min:1e6,max:1e12,note:"About 8.1 billion."},
- {q:"How fast does sound travel in air, in mph?",a:767,min:1,max:1e6,note:"About 767 mph at 68 °F."},
- {q:"How many bones are in an adult human body?",a:206,min:1,max:1e5,note:"Babies are born with around 300."},
- {q:"How tall is the Burj Khalifa, in feet?",a:2717,min:10,max:1e5,note:"2,717 ft, the world's tallest building."},
- {q:"How fast is light, in miles per second?",a:186282,min:10,max:1e9,note:"About 7.5 laps of Earth per second."},
- {q:"How many keys are on a standard piano?",a:88,min:1,max:1e4,note:"52 white, 36 black."},
- {q:"How many member states does the UN have?",a:193,min:1,max:1e5,note:"Since South Sudan joined in 2011."},
- {q:"What is Earth's diameter, in miles?",a:7918,min:100,max:1e7,note:"About 7,900 miles."},
- {q:"How far is the Sun from Earth, in miles?",a:92960000,min:1e5,max:1e11,note:"About 93 million miles. Light takes 8 minutes."},
- {q:"How tall is the Statue of Liberty with its pedestal, in feet?",a:305,min:1,max:1e4,note:"305 ft from ground to torch."},
- {q:"How many hairs are on a human head?",a:100000,min:100,max:1e9,note:"About 100,000 on average."},
- {q:"How many Earth days does a year on Mars last?",a:687,min:1,max:1e6,note:"687 days, almost two Earth years."},
- {q:"How many people live in the Greater Tokyo Area?",a:37000000,min:1e4,max:1e10,note:"About 37 million, the largest metro area on Earth."},
- {q:"How many people live in the United States?",a:340000000,min:1e5,max:1e11,note:"About 340 million."},
- {q:"How many people live in Canada?",a:41000000,min:1e4,max:1e10,note:"About 41 million."},
- {q:"How deep is the Mariana Trench, in feet?",a:35876,min:10,max:1e7,note:"Nearly 7 miles. Everest would sink with 6,800 ft to spare."},
- {q:"How long is the Nile, in miles?",a:4132,min:10,max:1e7,note:"About 4,100 miles."},
- {q:"How fast can a cheetah run, in mph?",a:68,min:1,max:1e5,note:"Up to about 68 mph, in short bursts."},
- {q:"How much does an adult male African elephant weigh, in pounds?",a:13000,min:10,max:1e7,note:"About 13,000 lb, over 6 tons."},
- {q:"How tall is the Empire State Building to its tip, in feet?",a:1454,min:10,max:1e5,note:"1,454 ft including the antenna."},
- {q:"How far is Paris from New York, in miles?",a:3627,min:100,max:1e7,note:"About 3,600 miles as the crow flies."},
- {q:"How far is London from Sydney, in miles?",a:10560,min:100,max:1e8,note:"About 10,600 miles."},
- {q:"How long is Earth's equator, in miles?",a:24901,min:100,max:1e8,note:"About 24,900 miles."},
- {q:"How many hours are in a year?",a:8760,min:10,max:1e8,note:"365 × 24 = 8,760."},
- {q:"How many minutes are in a week?",a:10080,min:10,max:1e8,note:"7 × 24 × 60 = 10,080."},
- {q:"How many seconds are in a day?",a:86400,min:100,max:1e9,note:"86,400."},
- {q:"How many cells are in the human body?",a:37000000000000,min:1e6,max:1e17,note:"About 37 trillion (estimates vary)."},
- {q:"How many neurons are in the human brain?",a:86000000000,min:1e5,max:1e15,note:"About 86 billion."},
- {q:"How many times does a human heart beat in a day?",a:100000,min:100,max:1e9,note:"About 100,000 times."},
- {q:"How many bones are in a giraffe's neck?",a:7,min:1,max:1e4,note:"Just 7, the same as yours."},
- {q:"How many teeth does an adult human have?",a:32,min:1,max:1e4,note:"32, wisdom teeth included."},
- {q:"How many gallons of water fill an Olympic swimming pool?",a:660000,min:1e3,max:1e10,note:"About 660,000 gallons."},
- {q:"How many Olympic pools would fill Lake Geneva?",a:35000000,min:1e3,max:1e12,note:"About 35 million."},
- {q:"How much does the Eiffel Tower weigh, in pounds?",a:22300000,min:1e3,max:1e11,note:"About 22 million lb, around 11,000 tons."},
- {q:"How many McDonald's restaurants are there worldwide?",a:43000,min:100,max:1e8,note:"About 43,000."},
- {q:"How many languages are spoken in the world today?",a:7000,min:10,max:1e7,note:"About 7,000."},
- {q:"How fast does the International Space Station travel, in mph?",a:17500,min:10,max:1e8,note:"About 17,500 mph, one orbit every 90 minutes."},
- {q:"How high does the International Space Station orbit, in miles?",a:250,min:1,max:1e6,note:"About 250 miles up."},
- {q:"How hot is the surface of the Sun, in °F?",a:9900,min:10,max:1e8,note:"About 9,900 °F."},
- {q:"How old is the universe, in years?",a:13800000000,min:1e5,max:1e14,note:"About 13.8 billion years."},
- {q:"How old is Earth, in years?",a:4540000000,min:1e4,max:1e13,note:"About 4.5 billion years."},
- {q:"How many steps lead to the top of the Eiffel Tower?",a:1665,min:10,max:1e6,note:"1,665 (visitors can climb 674)."},
- {q:"How long is a marathon, in yards?",a:46145,min:100,max:1e8,note:"46,145 yards, which is 26 miles 385 yards."},
- {q:"How many articles are on English Wikipedia?",a:6900000,min:1e3,max:1e11,note:"About 7 million."},
- {q:"How many bees live in a hive in summer?",a:50000,min:10,max:1e8,note:"Around 50,000."},
- {q:"How fast does a passenger jet cruise, in mph?",a:560,min:10,max:1e6,note:"About 560 mph."},
- {q:"How much does a typical car weigh, in pounds?",a:3300,min:10,max:1e6,note:"About 3,300 lb."},
- {q:"How long is the Panama Canal, in miles?",a:51,min:1,max:1e5,note:"About 51 miles."},
- {q:"How wide is the English Channel at its narrowest, in miles?",a:21,min:1,max:1e5,note:"About 21 miles, Dover to Calais."},
- {q:"How many islands make up Indonesia?",a:17000,min:10,max:1e8,note:"More than 17,000."},
- {q:"How many lakes are there in Finland?",a:188000,min:100,max:1e9,note:"About 188,000."},
- {q:"How many people live in Iceland?",a:390000,min:1e3,max:1e10,note:"About 390,000."},
- {q:"How many people live in India?",a:1450000000,min:1e5,max:1e12,note:"About 1.45 billion, the most populous country."}
+// Units: imperial or metric, independent from the language.
+const UN={
+ d:{imp:["miles","miles","miles"],met:["kilometers","kilomètres","km"]},
+ h:{imp:["feet","pieds","ft"],met:["meters","mètres","m"]},
+ w:{imp:["pounds","livres","lb"],met:["kilograms","kilogrammes","kg"]},
+ v:{imp:["mph","mph","mph"],met:["km/h","km/h","km/h"]},
+ s:{imp:["miles per second","miles par seconde","miles/s"],met:["kilometers per second","kilomètres par seconde","km/s"]},
+ l:{imp:["gallons","gallons","gallons"],met:["liters","litres","litres"]},
+ t:{imp:["°F","°F","°F"],met:["°C","°C","°C"]},
+ m:{imp:["yards","yards","yards"],met:["meters","mètres","m"]}};
+// [unit, imperial[a,min,max], metric[a,min,max]|null, question EN, question FR, fact EN, fact FR, exact?, FR override (same shape)]
+const BALLX=[
+ ["d",[238855,1e3,1e8],[384400,1e3,1e9],"How far is the Moon from Earth, in {u}?","À quelle distance de la Terre se trouve la Lune, en {u} ?","That's about 30 Earths lined up.","Soit environ 30 Terres alignées."],
+ [null,[31536000,1e4,1e10],null,"How many seconds are in a year?","Combien de secondes y a-t-il dans une année ?","A million seconds is only 11.5 days.","Un million de secondes, ce n'est que 11,5 jours."],
+ ["h",[1083,10,1e4],[330,1,1e4],"How tall is the Eiffel Tower, in {u}?","Quelle est la hauteur de la tour Eiffel, en {u} ?","Antennas included.","Antennes comprises.",1],
+ ["h",[29032,100,1e5],[8849,10,1e5],"How tall is Mount Everest, in {u}?","Quelle est la hauteur du mont Everest, en {u} ?","Above sea level.","Au-dessus du niveau de la mer.",1],
+ ["w",[330000,200,1e8],[150000,100,1e8],"How much does a blue whale weigh, in {u}?","Combien pèse une baleine bleue, en {u} ?","The heaviest animal ever.","Le plus lourd animal de tous les temps."],
+ [null,[8100000000,1e6,1e12],null,"How many people live on Earth?","Combien d'humains vivent sur Terre ?","About 8.1 billion.","Environ 8,1 milliards."],
+ ["v",[767,1,1e6],[1235,1,1e6],"How fast does sound travel in air, in {u}?","À quelle vitesse le son voyage-t-il dans l'air, en {u} ?","In air at room temperature.","Dans l'air à température ambiante."],
+ [null,[206,1,1e5],null,"How many bones are in an adult human body?","Combien d'os compte le corps d'un adulte ?","Babies are born with around 300.","Les bébés en ont environ 300 à la naissance."],
+ ["h",[2717,10,1e5],[828,10,1e5],"How tall is the Burj Khalifa, in {u}?","Quelle est la hauteur de la tour Burj Khalifa, en {u} ?","The world's tallest building.","Le plus haut bâtiment du monde.",1],
+ ["s",[186282,10,1e9],[299792,10,1e9],"How fast is light, in {u}?","À quelle vitesse va la lumière, en {u} ?","About 7.5 laps of Earth per second.","Environ 7,5 tours de la Terre par seconde."],
+ [null,[88,1,1e4],null,"How many keys are on a standard piano?","Combien de touches compte un piano standard ?","52 white, 36 black.","52 blanches, 36 noires."],
+ [null,[193,1,1e5],null,"How many member states does the UN have?","Combien d'États membres compte l'ONU ?","Since South Sudan joined in 2011.","Depuis l'entrée du Soudan du Sud en 2011."],
+ ["d",[7918,100,1e7],[12742,100,1e7],"What is Earth's diameter, in {u}?","Quel est le diamètre de la Terre, en {u} ?","",""],
+ ["d",[92960000,1e5,1e11],[149600000,1e5,1e11],"How far is the Sun from Earth, in {u}?","À quelle distance de la Terre se trouve le Soleil, en {u} ?","Light takes 8 minutes to arrive.","La lumière met 8 minutes à arriver."],
+ ["h",[305,1,1e4],[93,1,1e4],"How tall is the Statue of Liberty with its pedestal, in {u}?","Quelle est la hauteur de la statue de la Liberté avec son socle, en {u} ?","From ground to torch.","Du sol à la torche.",1],
+ [null,[100000,100,1e9],null,"How many hairs are on a human head?","Combien de cheveux a-t-on sur la tête ?","About 100,000 on average.","Environ 100 000 en moyenne."],
+ [null,[687,1,1e6],null,"How many Earth days does a year on Mars last?","Combien de jours terrestres dure une année sur Mars ?","687 days, almost two Earth years.","687 jours, presque deux années terrestres."],
+ [null,[37000000,1e4,1e10],null,"How many people live in the Greater Tokyo Area?","Combien de personnes vivent dans l'agglomération de Tokyo ?","About 37 million, the largest metro area on Earth.","Environ 37 millions, la plus grande agglomération du monde."],
+ [null,[340000000,1e5,1e11],null,"How many people live in the United States?","Combien de personnes vivent aux États-Unis ?","About 340 million.","Environ 340 millions.",0,
+  [null,[68000000,1e4,1e10],null,"","Combien d'habitants compte la France ?","","Environ 68 millions."]],
+ [null,[41000000,1e4,1e10],null,"How many people live in Canada?","Combien de personnes vivent au Canada ?","About 41 million.","Environ 41 millions.",0,
+  [null,[11800000,1e4,1e10],null,"","Combien d'habitants compte la Belgique ?","","Environ 11,8 millions."]],
+ ["h",[35876,10,1e7],[10935,10,1e7],"How deep is the Mariana Trench, in {u}?","Quelle est la profondeur de la fosse des Mariannes, en {u} ?","Mount Everest would be swallowed whole.","L'Everest y serait englouti.",1],
+ ["d",[4132,10,1e7],[6650,10,1e7],"How long is the Nile, in {u}?","Quelle est la longueur du Nil, en {u} ?","",""],
+ ["v",[68,1,1e5],[110,1,1e5],"How fast can a cheetah run, in {u}?","À quelle vitesse peut courir un guépard, en {u} ?","In short bursts.","Sur de courtes distances."],
+ ["w",[13000,10,1e7],[6000,10,1e7],"How much does an adult male African elephant weigh, in {u}?","Combien pèse un éléphant d'Afrique mâle adulte, en {u} ?","",""],
+ ["h",[1454,10,1e5],[443,10,1e5],"How tall is the Empire State Building to its tip, in {u}?","Quelle est la hauteur de l'Empire State Building jusqu'à la pointe, en {u} ?","Antenna included.","Antenne comprise.",1],
+ ["d",[3627,100,1e7],[5837,100,1e7],"How far is Paris from New York, in {u}?","À quelle distance Paris est-il de New York, en {u} ?","As the crow flies.","À vol d'oiseau."],
+ ["d",[10560,100,1e8],[16990,100,1e8],"How far is London from Sydney, in {u}?","À quelle distance Londres est-il de Sydney, en {u} ?","As the crow flies.","À vol d'oiseau.",0,
+  ["d",[10540,100,1e8],[16960,100,1e8],"","À quelle distance Paris est-il de Sydney, en {u} ?","","À vol d'oiseau."]],
+ ["d",[24901,100,1e8],[40075,100,1e8],"How long is Earth's equator, in {u}?","Quelle est la longueur de l'équateur, en {u} ?","",""],
+ [null,[8760,10,1e8],null,"How many hours are in a year?","Combien d'heures y a-t-il dans une année ?","365 × 24 = 8,760.","365 × 24 = 8 760."],
+ [null,[10080,10,1e8],null,"How many minutes are in a week?","Combien de minutes y a-t-il dans une semaine ?","7 × 24 × 60 = 10,080.","7 × 24 × 60 = 10 080."],
+ [null,[86400,100,1e9],null,"How many seconds are in a day?","Combien de secondes y a-t-il dans une journée ?","86,400.","86 400."],
+ [null,[37000000000000,1e6,1e17],null,"How many cells are in the human body?","Combien de cellules compte le corps humain ?","About 37 trillion (estimates vary).","Environ 37 000 milliards (selon les estimations)."],
+ [null,[86000000000,1e5,1e15],null,"How many neurons are in the human brain?","Combien de neurones compte le cerveau humain ?","About 86 billion.","Environ 86 milliards."],
+ [null,[100000,100,1e9],null,"How many times does a human heart beat in a day?","Combien de fois le cœur humain bat-il en une journée ?","About 100,000 times.","Environ 100 000 fois."],
+ [null,[7,1,1e4],null,"How many bones are in a giraffe's neck?","Combien de vertèbres compte le cou d'une girafe ?","Just 7, the same as yours.","Seulement 7, comme le tien."],
+ [null,[32,1,1e4],null,"How many teeth does an adult human have?","Combien de dents a un adulte ?","32, wisdom teeth included.","32, dents de sagesse comprises."],
+ ["l",[660000,1e3,1e10],[2500000,1e3,1e10],"How many {u} of water fill an Olympic swimming pool?","Combien de {u} d'eau faut-il pour remplir une piscine olympique ?","",""],
+ [null,[35000000,1e3,1e12],null,"How many Olympic pools would fill Lake Geneva?","Combien de piscines olympiques faudrait-il pour remplir le lac Léman ?","About 35 million.","Environ 35 millions."],
+ ["w",[22300000,1e3,1e11],[10100000,1e3,1e11],"How much does the Eiffel Tower weigh, in {u}?","Combien pèse la tour Eiffel, en {u} ?","",""],
+ [null,[43000,100,1e8],null,"How many McDonald's restaurants are there worldwide?","Combien y a-t-il de restaurants McDonald's dans le monde ?","About 43,000.","Environ 43 000."],
+ [null,[7000,10,1e7],null,"How many languages are spoken in the world today?","Combien de langues parle-t-on dans le monde aujourd'hui ?","About 7,000.","Environ 7 000."],
+ ["v",[17500,10,1e8],[28000,10,1e8],"How fast does the International Space Station travel, in {u}?","À quelle vitesse voyage la Station spatiale internationale, en {u} ?","One orbit every 90 minutes.","Un tour de la Terre toutes les 90 minutes."],
+ ["d",[250,1,1e6],[400,1,1e6],"How high does the International Space Station orbit, in {u}?","À quelle altitude orbite la Station spatiale internationale, en {u} ?","",""],
+ ["t",[9900,10,1e8],[5500,10,1e8],"How hot is the surface of the Sun, in {u}?","Quelle est la température à la surface du Soleil, en {u} ?","",""],
+ [null,[13800000000,1e5,1e14],null,"How old is the universe, in years?","Quel est l'âge de l'univers, en années ?","About 13.8 billion years.","Environ 13,8 milliards d'années."],
+ [null,[4540000000,1e4,1e13],null,"How old is Earth, in years?","Quel est l'âge de la Terre, en années ?","About 4.5 billion years.","Environ 4,5 milliards d'années."],
+ [null,[1665,10,1e6],null,"How many steps lead to the top of the Eiffel Tower?","Combien de marches mènent au sommet de la tour Eiffel ?","1,665 (visitors can climb 674).","1 665 (les visiteurs peuvent en monter 674)."],
+ ["m",[46145,100,1e8],[42195,100,1e8],"How long is a marathon, in {u}?","Quelle est la longueur d'un marathon, en {u} ?","That's 26 miles 385 yards, or 42.195 km.","Soit 42,195 km, ou 26 miles 385 yards.",1],
+ [null,[6900000,1e3,1e11],null,"How many articles are on English Wikipedia?","Combien d'articles compte Wikipédia en anglais ?","About 7 million.","Environ 7 millions.",0,
+  [null,[2700000,1e3,1e11],null,"","Combien d'articles compte Wikipédia en français ?","","Environ 2,7 millions."]],
+ [null,[50000,10,1e8],null,"How many bees live in a hive in summer?","Combien d'abeilles vivent dans une ruche en été ?","Around 50,000.","Environ 50 000."],
+ ["v",[560,10,1e6],[900,10,1e6],"How fast does a passenger jet cruise, in {u}?","À quelle vitesse croise un avion de ligne, en {u} ?","",""],
+ ["w",[3300,10,1e6],[1500,10,1e6],"How much does a typical car weigh, in {u}?","Combien pèse une voiture typique, en {u} ?","",""],
+ ["d",[51,1,1e5],[82,1,1e5],"How long is the Panama Canal, in {u}?","Quelle est la longueur du canal de Panama, en {u} ?","",""],
+ ["d",[21,1,1e5],[34,1,1e5],"How wide is the English Channel at its narrowest, in {u}?","Quelle est la largeur de la Manche à son endroit le plus étroit, en {u} ?","Dover to Calais.","De Douvres à Calais."],
+ [null,[17000,10,1e8],null,"How many islands make up Indonesia?","Combien d'îles compte l'Indonésie ?","More than 17,000.","Plus de 17 000."],
+ [null,[188000,100,1e9],null,"How many lakes are there in Finland?","Combien y a-t-il de lacs en Finlande ?","About 188,000.","Environ 188 000."],
+ [null,[390000,1e3,1e10],null,"How many people live in Iceland?","Combien de personnes vivent en Islande ?","About 390,000.","Environ 390 000."],
+ [null,[1450000000,1e5,1e12],null,"How many people live in India?","Combien de personnes vivent en Inde ?","About 1.45 billion, the most populous country.","Environ 1,45 milliard, le pays le plus peuplé."]
 ];
-const YEARS=[
- {q:"First humans land on the Moon",a:1969},{q:"The Titanic sinks",a:1912},
- {q:"The Berlin Wall falls",a:1989},{q:"The first iPhone is released",a:2007},
- {q:"Wikipedia is launched",a:2001},{q:"The Chernobyl disaster",a:1986},
- {q:"The first Harry Potter book is published",a:1997},{q:"The Wright brothers' first powered flight",a:1903},
- {q:"Sputnik 1 becomes the first satellite",a:1957},{q:"Euro banknotes and coins enter circulation",a:2002},
- {q:"The first Star Wars film hits cinemas",a:1977},{q:"Nelson Mandela is released from prison",a:1990},
- {q:"Facebook is founded",a:2004},{q:"YouTube is launched",a:2005},
- {q:"The first modern Olympic Games, in Athens",a:1896},{q:"The Soviet Union is dissolved",a:1991},
- {q:"World War I begins",a:1914},
- {q:"World War I ends",a:1918},
- {q:"World War II begins",a:1939},
- {q:"World War II ends",a:1945},
- {q:"The attack on Pearl Harbor",a:1941},
- {q:"The Wall Street Crash",a:1929},
- {q:"Martin Luther King's “I Have a Dream” speech",a:1963},
- {q:"President Kennedy is assassinated",a:1963},
- {q:"The Woodstock festival",a:1969},
- {q:"President Nixon resigns",a:1974},
- {q:"Elvis Presley dies",a:1977},
- {q:"John Lennon is killed",a:1980},
- {q:"MTV goes on air",a:1981},
- {q:"The Space Shuttle Challenger disaster",a:1986},
- {q:"Google is founded",a:1998},
- {q:"The September 11 attacks",a:2001},
- {q:"Hurricane Katrina hits New Orleans",a:2005},
- {q:"Barack Obama is elected president",a:2008},
- {q:"Bitcoin is created",a:2009},
- {q:"Instagram is launched",a:2010},
- {q:"The Fukushima nuclear disaster",a:2011},
- {q:"The UK votes for Brexit",a:2016},
- {q:"COVID-19 is declared a pandemic",a:2020},
- {q:"ChatGPT is released",a:2022},
- {q:"The film Titanic is released",a:1997},
- {q:"The first Toy Story film is released",a:1995},
- {q:"Amazon is founded",a:1994},
- {q:"Disneyland opens",a:1955},
- {q:"Rosa Parks refuses to give up her bus seat",a:1955},
- {q:"The first Super Bowl",a:1967},
- {q:"Everest is climbed for the first time",a:1953},
- {q:"The structure of DNA is discovered",a:1953},
- {q:"Penicillin is discovered",a:1928},
- {q:"Mickey Mouse appears in Steamboat Willie",a:1928},
- {q:"The first Tour de France",a:1903},
- {q:"The first Nobel Prizes are awarded",a:1901},
- {q:"The Golden Gate Bridge opens",a:1937},
- {q:"The Hindenburg airship disaster",a:1937},
- {q:"Princess Diana dies",a:1997},
- {q:"The Beatles play on The Ed Sullivan Show",a:1964},
- {q:"Michael Jackson releases Thriller",a:1982},
- {q:"The first PlayStation is released in Japan",a:1994},
- {q:"Notre-Dame de Paris catches fire",a:2019},
- {q:"The first website goes online",a:1991}
+const BALL=BALLX.map(x=>{let [u,im,me,qe,qf,fe,ff,e]=x;if(LANG==="fr"&&x[8])[u,im,me,qe,qf,fe,ff,e]=x[8];
+  const fr=LANG==="fr",v=(SYS==="met"&&me)?me:im,un=u?UN[u][SYS]:null,q=(fr?qf:qe),f=fr?ff:fe;
+  return {q:u?q.replace("{u}",un[fr?1:0]):q,a:v[0],min:v[1],max:v[2],un:un?un[2]:"",note:f}});
+// [EN, year, FR, FR year if different]
+const YEARSX=[
+ ["First humans land on the Moon",1969,"Les premiers humains marchent sur la Lune"],["The Titanic sinks",1912,"Le Titanic coule"],
+ ["The Berlin Wall falls",1989,"Le mur de Berlin tombe"],["The first iPhone is released",2007,"Sortie du premier iPhone"],
+ ["Wikipedia is launched",2001,"Lancement de Wikipédia"],["The Chernobyl disaster",1986,"La catastrophe de Tchernobyl"],
+ ["The first Harry Potter book is published",1997,"Publication du premier livre Harry Potter"],["The Wright brothers' first powered flight",1903,"Premier vol motorisé des frères Wright"],
+ ["Sputnik 1 becomes the first satellite",1957,"Spoutnik 1, premier satellite artificiel"],["Euro banknotes and coins enter circulation",2002,"Les billets et pièces en euros entrent en circulation"],
+ ["The first Star Wars film hits cinemas",1977,"Le premier film Star Wars sort au cinéma"],["Nelson Mandela is released from prison",1990,"Nelson Mandela est libéré de prison"],
+ ["Facebook is founded",2004,"Création de Facebook"],["YouTube is launched",2005,"Lancement de YouTube"],
+ ["The first modern Olympic Games, in Athens",1896,"Les premiers Jeux olympiques modernes, à Athènes"],["The Soviet Union is dissolved",1991,"Dissolution de l'Union soviétique"],
+ ["World War I begins",1914,"Début de la Première Guerre mondiale"],["World War I ends",1918,"Fin de la Première Guerre mondiale"],
+ ["World War II begins",1939,"Début de la Seconde Guerre mondiale"],["World War II ends",1945,"Fin de la Seconde Guerre mondiale"],
+ ["The attack on Pearl Harbor",1941,"L'attaque de Pearl Harbor"],["The Wall Street Crash",1929,"Le krach de Wall Street"],
+ ["Martin Luther King's “I Have a Dream” speech",1963,"Le discours « I Have a Dream » de Martin Luther King"],["President Kennedy is assassinated",1963,"Assassinat du président Kennedy"],
+ ["The Woodstock festival",1969,"Le festival de Woodstock"],["President Nixon resigns",1974,"Valéry Giscard d'Estaing est élu président",1974],
+ ["Elvis Presley dies",1977,"Mort d'Elvis Presley"],["John Lennon is killed",1980,"John Lennon est assassiné"],
+ ["MTV goes on air",1981,"MTV commence à émettre"],["The Space Shuttle Challenger disaster",1986,"La catastrophe de la navette Challenger"],
+ ["Google is founded",1998,"Création de Google"],["The September 11 attacks",2001,"Les attentats du 11 septembre"],
+ ["Hurricane Katrina hits New Orleans",2005,"L'ouragan Katrina frappe La Nouvelle-Orléans"],["Barack Obama is elected president",2008,"Emmanuel Macron est élu président",2017],
+ ["Bitcoin is created",2009,"Création du Bitcoin"],["Instagram is launched",2010,"Lancement d'Instagram"],
+ ["The Fukushima nuclear disaster",2011,"La catastrophe nucléaire de Fukushima"],["The UK votes for Brexit",2016,"Le Royaume-Uni vote pour le Brexit"],
+ ["COVID-19 is declared a pandemic",2020,"Le COVID-19 est déclaré pandémie"],["ChatGPT is released",2022,"Lancement de ChatGPT"],
+ ["The film Titanic is released",1997,"Sortie du film Titanic"],["The first Toy Story film is released",1995,"Sortie du premier film Toy Story"],
+ ["Amazon is founded",1994,"Création d'Amazon"],["Disneyland opens",1955,"Ouverture de Disneyland Paris",1992],
+ ["Rosa Parks refuses to give up her bus seat",1955,"Abolition de la peine de mort en France",1981],["The first Super Bowl",1967,"La France remporte sa première Coupe du monde de football",1998],
+ ["Everest is climbed for the first time",1953,"Première ascension de l'Everest"],["The structure of DNA is discovered",1953,"Découverte de la structure de l'ADN"],
+ ["Penicillin is discovered",1928,"Découverte de la pénicilline"],["Mickey Mouse appears in Steamboat Willie",1928,"Mickey Mouse apparaît dans Steamboat Willie"],
+ ["The first Tour de France",1903,"Le premier Tour de France"],["The first Nobel Prizes are awarded",1901,"Les premiers prix Nobel sont décernés"],
+ ["The Golden Gate Bridge opens",1937,"Ouverture du Golden Gate Bridge"],["The Hindenburg airship disaster",1937,"La catastrophe du dirigeable Hindenburg"],
+ ["Princess Diana dies",1997,"Mort de la princesse Diana"],["The Beatles play on The Ed Sullivan Show",1964,"Les Beatles à l'Olympia, à Paris",1964],
+ ["Michael Jackson releases Thriller",1982,"Michael Jackson sort Thriller"],["The first PlayStation is released in Japan",1994,"Sortie de la première PlayStation au Japon"],
+ ["Notre-Dame de Paris catches fire",2019,"Incendie de Notre-Dame de Paris"],["The first website goes online",1991,"Le premier site web est mis en ligne"]
 ];
+const YEARS=YEARSX.map(y=>LANG==="fr"?{q:y[2],a:y[3]||y[1]}:{q:y[0],a:y[1]});
 
 // ---------- State ----------
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -282,14 +373,15 @@ function home(){
   const st=store.get("streak",{n:0,last:""});
   const done=store.get("done",null);const played=!CH&&done&&done.date===today;
   app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
-  <div style="margin:28px 0 8px"><h1>How good is your gut?</h1>
-  <p class="mut" style="font-size:18px">3 quick games, 3 minutes a day. Same questions for everyone, so you can compare with friends.</p></div>
-  ${CH?`<div class="chal">🥊 A friend scored <b>${CH.score}</b>/1500. Beat them on the same questions!</div>`:""}
+  <div style="margin:10px 0 0;text-align:right">${selHTML()}</div>
+  <div style="margin:14px 0 8px"><h1>${t("h1")}</h1>
+  <p class="mut" style="font-size:18px">${t("sub")}</p></div>
+  ${CH?`<div class="chal">${t("chal",CH.score)}</div>`:""}
   ${GAMES.map((g,i)=>`<div class="tile" style="--c:var(${g.c});--cs:var(${g.cs})"><div class="ic">${g.ic}</div><div><b>${g.title}</b><span>${g.rule}</span></div></div>`).join("")}
   <div class="push" style="padding-top:22px">${played
-    ?`<button id="res">See today's result · ${done.total}</button><p class="mut" style="text-align:center;margin:12px 0 0">Today's round is done. New questions tomorrow 🌅</p>`
-    :`<button id="go">${CH?"Take the challenge":"Play today's round"}</button>`}</div>`;
-  initInstall();
+    ?`<button id="res">${t("seeRes",done.total)}</button><p class="mut" style="text-align:center;margin:12px 0 0">${t("doneMsg")}</p>`
+    :`<button id="go">${CH?t("takeCh"):t("playToday")}</button>`}</div>`;
+  bindSel(app);initInstall();
   go("go",()=>{gi=0;ri=0;pts=[[],[],[]];intro()});
   go("res",()=>result(done.pts,true));
 }
@@ -298,8 +390,8 @@ function go(id,fn){const e=document.getElementById(id);if(e)e.onclick=fn}
 // ---------- Game intro ----------
 function intro(){
   const g=GAMES[gi];theme(g);
-  app.innerHTML=`<div class="intro"><span class="step">Game ${gi+1} of 3</span><span class="ic">${g.ic}</span><h1>${g.title}</h1><p>${g.rule}</p></div>
-  <button id="start" class="alt">Let's go</button>`;
+  app.innerHTML=`<div class="intro"><span class="step">${t("gameOf",gi+1)}</span><span class="ic">${g.ic}</span><h1>${g.title}</h1><p>${g.rule}</p></div>
+  <button id="start" class="alt">${t("letsgo")}</button>`;
   go("start",play);
 }
 
@@ -311,27 +403,27 @@ function play(){
   if(g.id==="year")cur=sets.year[ri];
   let body="";
   if(g.id==="ballpark")body=`<p class="q">${cur.q}</p><div class="val" id="v"></div>
-    <div class="slrow"><div class="sl"><input id="s" type="range" min="0" max="1000" value="500" aria-label="Your estimate"><div id="mk"></div></div></div>
+    <div class="slrow"><div class="sl"><input id="s" type="range" min="0" max="1000" value="500" aria-label="${t("ariaEst")}"><div id="mk"></div></div></div>
     <div class="ends"><span>${fmt(cur.min)}</span><span>${fmt(cur.max)}</span></div>`;
-  if(g.id==="year")body=`<p class="q">${cur.q}</p><p class="mut" style="margin:0">In which year?</p><div class="val" id="v"></div>
-    <div class="slrow"><div class="sl"><input id="s" type="range" min="1890" max="2025" value="1957" aria-label="Your estimate (year)"><div id="mk"></div></div></div>
+  if(g.id==="year")body=`<p class="q">${cur.q}</p><p class="mut" style="margin:0">${t("whichYear")}</p><div class="val" id="v"></div>
+    <div class="slrow"><div class="sl"><input id="s" type="range" min="1890" max="2025" value="1957" aria-label="${t("ariaYear")}"><div id="mk"></div></div></div>
     <div class="ends"><span>1890</span><span>2025</span></div>`;
-  if(g.id==="eye")body=`<p class="q">Make a <span style="color:var(--c)">${cur}°</span> angle</p><p class="mut" style="margin:0">Tap where the line should point. Tap again to adjust.</p><div id="pad">${drawSvg(null,null)}</div>`;
+  if(g.id==="eye")body=`<p class="q">${t("angleQ",cur)}</p><p class="mut" style="margin:0">${t("angleHint")}</p><div id="pad">${drawSvg(null,null)}</div>`;
   app.innerHTML=`<div class="hud"><span>${g.ic} ${g.short}</span><div class="dots">${Array.from({length:ROUNDS},(_,i)=>`<i class="${i<=ri?"on":""}"></i>`).join("")}</div><span>${total()}</span></div>
   <div class="card">${body}<div id="fb"></div></div>
-  <div class="push" style="padding-top:18px"><button id="ok">Lock it in</button></div>`;
+  <div class="push" style="padding-top:18px"><button id="ok">${t("lock")}</button></div>`;
   const ok=document.getElementById("ok");
   let s,lmin,lmax,read;
   if(g.id!=="eye"){
     s=document.getElementById("s");const v=document.getElementById("v");
     lmin=Math.log(cur.min||1);lmax=Math.log(cur.max||1);
     let typed=null;read=()=>typed!=null?typed:g.id==="ballpark"?Math.exp(lmin+(s.value/1000)*(lmax-lmin)):+s.value;
-    const show=()=>v.textContent=g.id==="ballpark"?"≈ "+fmt(read()):s.value;
+    const show=()=>v.textContent=g.id==="ballpark"?"≈ "+fmt(read())+(cur.un?" "+cur.un:""):s.value;
     s.oninput=()=>{typed=null;show()};show();
     // exact value
-    const ex=document.createElement("button");ex.className="exact";ex.textContent="Type exact value";
+    const ex=document.createElement("button");ex.className="exact";ex.textContent=t("exact");
     document.querySelector(".ends").after(ex);
-    ex.onclick=()=>{if(answered)return;const inp=document.createElement("input");inp.className="xin";inp.type="text";inp.inputMode="numeric";inp.placeholder=g.id==="year"?"e.g. 1969":"Type a number, e.g. 5800";
+    ex.onclick=()=>{if(answered)return;const inp=document.createElement("input");inp.className="xin";inp.type="text";inp.inputMode="numeric";inp.placeholder=g.id==="year"?t("phYear"):t("phNum");
       ex.replaceWith(inp);inp.focus();
       inp.oninput=()=>{inp.value=inp.value.replace(/\D/g,"");if(!inp.value)return;let n=parseInt(inp.value,10);
         if(g.id==="ballpark"){n=Math.min(cur.max,Math.max(cur.min,n));s.value=Math.round((Math.log(n)-lmin)/(lmax-lmin)*1000)}else{s.value=Math.min(2025,Math.max(1890,n))}
@@ -342,24 +434,24 @@ function play(){
       if(answered)return;const svg=pad.querySelector("svg"),r=svg.getBoundingClientRect();
       const x=(e.clientX-r.left)*280/r.width-140,y=200-(e.clientY-r.top)*210/r.height;
       guess=Math.min(179,Math.max(1,Math.round(Math.atan2(Math.max(y,0),x)*180/Math.PI)));
-      pad.innerHTML=drawSvg(guess,null);ok.textContent="Lock it in";
+      pad.innerHTML=drawSvg(guess,null);ok.textContent=t("lock");
     });
   }
   ok.onclick=()=>{
     if(answered){next();return}
-    if(g.id==="eye"&&guess==null){ok.textContent="Tap the drawing first";return}
+    if(g.id==="eye"&&guess==null){ok.textContent=t("tapFirst");return}
     answered=true;let p,msg;
     if(g.id==="ballpark"){guess=read();const e=Math.abs(Math.log10(guess/cur.a));p=Math.max(0,Math.round(100*(1-e/2)));
-      marker((Math.log(cur.a)-lmin)/(lmax-lmin),fmt(cur.a));msg=`It's <b>${fmt(cur.a)}</b>. ${cur.note}`}
+      marker((Math.log(cur.a)-lmin)/(lmax-lmin),fmt(cur.a));msg=t("itsF",fmt(cur.a)+(cur.un?" "+cur.un:""),cur.note)}
     if(g.id==="year"){guess=+s.value;const e=Math.abs(guess-cur.a);p=Math.max(0,Math.round(100-e*3));
-      marker((cur.a-1890)/135,cur.a);msg=e===0?`<b>${cur.a}</b>. Spot on!`:`It was <b>${cur.a}</b>. You were ${e} year${e===1?"":"s"} off.`}
+      marker((cur.a-1890)/135,cur.a);msg=e===0?t("yearExact",cur.a):t("yearOff",cur.a,e)}
     if(g.id==="eye"){const e=Math.abs(guess-cur);p=Math.max(0,Math.round(100-e*4));
-      document.getElementById("pad").innerHTML=drawSvg(guess,cur);msg=e===0?`Exactly ${cur}°. Spot on!`:`You made <b>${guess}°</b>, ${e}° off.`}
+      document.getElementById("pad").innerHTML=drawSvg(guess,cur);msg=e===0?t("angExact",cur):t("angOff",guess,e)}
     if(s)s.disabled=true;
     pts[gi].push(p);
     document.getElementById("fb").innerHTML=`<div class="fb"><span class="pts">+${p}</span><div><span class="verdict">${verdict(p)}</span><p>${msg}</p></div></div>`;
     const last=gi===GAMES.length-1&&ri===ROUNDS-1;
-    ok.textContent=last?"See my result":ri===ROUNDS-1?"Next game":"Next";
+    ok.textContent=last?t("seeMy"):ri===ROUNDS-1?t("nextGame"):t("next");
     if(p>=90)confetti(18);
   };
   function marker(f,label){
@@ -372,14 +464,14 @@ function play(){
 function drawSvg(you,ans){
   const ox=140,oy=200,L=125,pt=d=>{const r=d*Math.PI/180;return [(ox+L*Math.cos(r)).toFixed(1),(oy-L*Math.sin(r)).toFixed(1)]};
   const line=(d,st)=>{const[x,y]=pt(d);return `<path d="M${ox} ${oy} L${x} ${y}" ${st} stroke-linecap="round" fill="none"/>`};
-  return `<svg viewBox="0 0 280 210" width="100%" style="touch-action:none;cursor:crosshair;margin-top:8px" role="img" aria-label="Drawing area">
+  return `<svg viewBox="0 0 280 210" width="100%" style="touch-action:none;cursor:crosshair;margin-top:8px" role="img" aria-label="${t("ariaDraw")}">
    <path d="M15 ${oy} A${L} ${L} 0 0 1 265 ${oy}" fill="var(--cs)" stroke="none"/>
    ${ans!=null?line(ans,'stroke="var(--c)" stroke-width="5" stroke-dasharray="8 7"'):""}
-   ${you!=null?line(you,'stroke="var(--ink)" stroke-width="6"'):`<text x="140" y="120" text-anchor="middle" font-size="14" fill="var(--mut)" font-weight="700">tap where the line should point</text>`}
+   ${you!=null?line(you,'stroke="var(--ink)" stroke-width="6"'):`<text x="140" y="120" text-anchor="middle" font-size="14" fill="var(--mut)" font-weight="700">${t("svgTap")}</text>`}
    <path d="M${ox} ${oy} L${ox+L} ${oy}" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/>
    <circle cx="${ox}" cy="${oy}" r="7" fill="var(--ink)"/>
    ${ans!=null?`<text x="${pt(ans)[0]}" y="${+pt(ans)[1]-10}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--c)">${ans}°</text>`:""}</svg>`}
-function verdict(p){return p>=90?"Bullseye 🎯":p>=70?"Sharp 👀":p>=40?"Close-ish 🤏":"Way off 🙈"}
+function verdict(p){const v=T[LANG].v;return p>=90?v[0]:p>=70?v[1]:p>=40?v[2]:v[3]}
 function scale(you,ans,label,ylab){
   const c=x=>Math.min(100,Math.max(0,x*100));const a=c(ans),y=c(you);
   return `<div class="scale"><div class="tr"></div><div class="gap" style="left:${Math.min(a,y)}%;width:${Math.abs(a-y)}%"></div>
@@ -387,7 +479,7 @@ function scale(you,ans,label,ylab){
 function angleSvg(a,guess){
   const L=120,ox=50,oy=160,pt=d=>{const r=d*Math.PI/180;return [ox+L*Math.cos(r),oy-L*Math.sin(r)].map(n=>n.toFixed(1)).join(" ")};
   const arc=d=>{const r=d*Math.PI/180,R=34;return `M${ox+R} ${oy} A${R} ${R} 0 0 0 ${(ox+R*Math.cos(r)).toFixed(1)} ${(oy-R*Math.sin(r)).toFixed(1)}`};
-  return `<svg width="100%" height="190" viewBox="0 0 280 190" role="img" aria-label="An angle to estimate">
+  return `<svg width="100%" height="190" viewBox="0 0 280 190" role="img" aria-label="${t("ariaAngle")}">
    <path d="${arc(a)}" fill="none" stroke="var(--c)" stroke-width="6" stroke-linecap="round"/>
    ${guess!=null?`<path d="M${ox} ${oy} L${pt(guess)}" stroke="var(--c)" stroke-width="4" stroke-dasharray="7 7" stroke-linecap="round" fill="none"/><text x="${pt(guess).split(" ")[0]}" y="${+pt(guess).split(" ")[1]-8}" font-size="13" font-weight="700" fill="var(--c)" text-anchor="middle">you</text>`:""}
    <path d="M${ox+L} ${oy} L${ox} ${oy} L${pt(a)}" stroke="var(--ink)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
@@ -395,50 +487,50 @@ function angleSvg(a,guess){
 
 // ---------- Result ----------
 function finish(){
-  const t=total();const st=store.get("streak",{n:0,last:""});
+  const tt=total();const st=store.get("streak",{n:0,last:""});
   const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
   if(st.last!==today){st.n=st.last===y?st.n+1:1;st.last=today;store.set("streak",st)}
-  store.set("played1",true);if(!CH)store.set("done",{date:today,total:t,pts});
-  send("plays",{score:t,details:{date:seedDay,challenge:!!CH,ballpark:pts[0],angle:pts[1],year:pts[2]}});
+  store.set("played1",true);if(!CH)store.set("done",{date:today,total:tt,pts});
+  send("plays",{score:tt,details:{lang:LANG,units:SYS,date:seedDay,challenge:!!CH,ballpark:pts[0],angle:pts[1],year:pts[2]}});
   result(pts,false);
 }
-function rank(t){return t>=1300?["Hawk","🦅"]:t>=1050?["Sharp","🎯"]:t>=750?["Steady","🧭"]:["Warming up","🌱"]}
+function rank(n){const r=T[LANG].rk;return n>=1300?[r[0],"🦅"]:n>=1050?[r[1],"🎯"]:n>=750?[r[2],"🧭"]:[r[3],"🌱"]}
 const sq=p=>p>=80?"🟩":p>=50?"🟨":p>=20?"🟧":"⬛";
 function result(P,again){
   theme(null);
-  const t=P.flat().reduce((a,b)=>a+b,0),[rk,re]=rank(t),st=store.get("streak",{n:0});
+  const tt=P.flat().reduce((a,b)=>a+b,0),[rk,re]=rank(tt),st=store.get("streak",{n:0});
   const grid=GAMES.map((g,i)=>`${g.ic} ${P[i].map(sq).join("")}`).join("\n");
-  const share=`${NAME} · ${today}\n${re} ${rk} · ${t}/1500\n${grid}\n🔥 ${st.n}-day streak`;
+  const share=t("shareTxt",NAME,today,re,rk,tt,grid,st.n);
   const joined=store.get("joined",false);
   app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
   <div style="text-align:center;margin:26px 0 18px"><div style="font-size:56px">${re}</div>
-  <div class="score disp" id="sc">0</div><div class="mut" style="font-weight:700">out of 1500 · ${rk}</div></div>
+  <div class="score disp" id="sc">0</div><div class="mut" style="font-weight:700">${t("outOf")} · ${rk}</div></div>
   <div class="card"><div class="bars">${GAMES.map((g,i)=>{const s=P[i].reduce((a,b)=>a+b,0);return `<div><span>${g.ic} ${g.short}</span><em><b style="background:var(${g.c})" data-w="${s/5}"></b></em><span>${s}</span></div>`}).join("")}</div>
   <div class="grid" style="margin:14px 0 14px;text-align:center">${GAMES.map((g,i)=>P[i].map(sq).join("")).join("<br>")}</div>
-  ${CH?`<div class="chal" style="margin:0 0 12px;text-align:center">${t>CH.score?"🏆 You beat your friend":t===CH.score?"🤝 It's a tie":"😅 Your friend wins"}: <b>${t}</b> vs <b>${CH.score}</b></div>`:""}
-  <button id="ch">Challenge a friend</button><div class="sp"></div><button id="cp" class="alt">Share my score</button></div>
+  ${CH?`<div class="chal" style="margin:0 0 12px;text-align:center">${tt>CH.score?t("beat"):tt===CH.score?t("tie"):t("lose")}: <b>${tt}</b> vs <b>${CH.score}</b></div>`:""}
+  <button id="ch">${t("chBtn")}</button><div class="sp"></div><button id="cp" class="alt">${t("shBtn")}</button></div>
   
   <div class="card" style="margin-top:18px;background:var(--g2s)">${!joined
-    ?`<h2>Come back tomorrow, or get more</h2><p>One round a day is the free demo. Leave your email and we'll tell you first when the full app opens.</p><form id="wl"><input type="email" required placeholder="you@email.com" aria-label="Email" autocomplete="email"><button>Get early access</button></form>`
+    ?`<h2>${t("offH")}</h2><p>${t("offP")}</p><form id="wl"><input type="email" required placeholder="${t("ph")}" aria-label="${t("ariaEmail")}" autocomplete="email"><button>${t("early")}</button></form>`
     :store.get("offer",false)
-      ?`<h2>You're on the list ✔</h2><p style="margin:0"><b>Coming soon.</b> Nothing was charged. We'll email you before launch with your founder price.</p>`
-      :`<h2>You're on the list ✔</h2><p><b>Founder price:</b> <b>$14.99/year</b> <s>$29.99</s></p><ul style="margin:0 0 14px;padding-left:1.2em"><li>Play as many rounds as you want, every day</li><li>See your progress, week after week</li><li>Find out if you over- or underestimate (your gut profile)</li><li>Miss a day without losing your streak</li><li>Pick your challenge: Easy, Normal or Hard</li></ul><button id="offer">Get the founder price</button>`}</div>
-  <div class="sp"></div><button class="alt" id="back">Back home</button>`;
+      ?`<h2>${t("onList")}</h2><p style="margin:0">${t("soon")}</p>`
+      :`<h2>${t("onList")}</h2><p><b>${t("fp")}</b> <b>${t("price")}</b> <s>${t("old")}</s></p><ul style="margin:0 0 14px;padding-left:1.2em">${T[LANG].perks.map(x=>`<li>${x}</li>`).join("")}</ul><button id="offer">${t("getFp")}</button>`}</div>
+  <div class="sp"></div><button class="alt" id="back">${t("back")}</button>`;
   // animate
   const el=document.getElementById("sc"),t0=performance.now(),rm=matchMedia("(prefers-reduced-motion:reduce)").matches;
-  const tick=n=>{const k=rm?1:Math.min(1,(n-t0)/900);el.textContent=Math.round(t*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+  const tick=n=>{const k=rm?1:Math.min(1,(n-t0)/900);el.textContent=Math.round(tt*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
   requestAnimationFrame(()=>document.querySelectorAll(".bars b").forEach(b=>b.style.width=b.dataset.w+"%"));
-  if(!again&&t>=1050)confetti(40);
-  go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent="Copied ✔ Paste it anywhere"}track("share")}catch{}});
-  go("ch",async e=>{const url=location.origin+location.pathname+"?c="+seedDay+"&s="+t;const msg=`I got ${t}/1500 on ${NAME}. Beat me on the same questions 👇`;
-    try{if(navigator.share)await navigator.share({text:msg,url});else{await navigator.clipboard.writeText(msg+" "+url);e.target.textContent="Link copied ✔ Send it to a friend"}track("challenge",{score:t})}catch{}});
+  if(!again&&tt>=1050)confetti(40);
+  go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent=t("copied")}track("share")}catch{}});
+  go("ch",async e=>{const url=location.origin+location.pathname+"?c="+seedDay+"&s="+tt;const msg=t("chMsg",tt,NAME);
+    try{if(navigator.share)await navigator.share({text:msg,url});else{await navigator.clipboard.writeText(msg+" "+url);e.target.textContent=t("linkCopied")}track("challenge",{score:tt})}catch{}});
   go("back",home);initInstall();
   const f=document.getElementById("wl");
   if(f)f.onsubmit=async e=>{e.preventDefault();const em=f.querySelector("input").value;
-    const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:t});store.set("waitlist",list);
-    send("waitlist",{email:em,score:t});
+    const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:tt});store.set("waitlist",list);
+    send("waitlist",{email:em,score:tt});
     store.set("joined",true);track("waitlist");result(P,true)};
-  go("offer",()=>{store.set("offer",true);track("offer_click",{price:14.99,score:t});result(P,true)});
+  go("offer",()=>{store.set("offer",true);track("offer_click",{price:14.99,score:tt});result(P,true)});
 }
 // ---------- Install to home screen ----------
 let deferredInstall=null;
@@ -452,8 +544,8 @@ function installable(){return !!deferredInstall||isIOS()}
 function showBubble(){
   if(isStandalone()||store.get("installed",false)){document.getElementById("ibub")?.remove();document.body.classList.remove("hasbub");return}
   if(!store.get("played1",false)||!installable()||document.getElementById("ibub"))return; // only after the first session, only where install is possible
-  const d=document.createElement("button");d.id="ibub";d.className="instbtn";d.setAttribute("aria-label","Install the Pifometer app");
-  d.innerHTML='<img src="icon-192.png" alt="">Get the app<span class="go">Install</span>';
+  const d=document.createElement("button");d.id="ibub";d.className="instbtn";d.setAttribute("aria-label",t("ariaInst"));
+  d.innerHTML=`<img src="icon-192.png" alt="">${t("bubble")}<span class="go">${t("inst")}</span>`;
   document.body.appendChild(d);document.body.classList.add("hasbub");
 }
 function initInstall(){
@@ -463,10 +555,8 @@ function initInstall(){
     const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Twitter|Line\//i.test(navigator.userAgent);
     const s=document.createElement("div");s.className="sheet";
     const canShare=isIOS()&&navigator.share&&!inApp;
-    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2>${inApp?`<p><b>First, open this page in Safari:</b> tap the <b>•••</b> menu, then <b>Open in browser</b>.</p>`:""}<ol>${isIOS()
-      ?'<li>Tap the <b>Share</b> button <span aria-hidden="true">⬆️</span> at the bottom of Safari</li><li>Scroll down and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li>'
-      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol>${canShare?'<button id="shr">Open share menu</button><div class="sp"></div>':""}<button id="sx" class="alt">Got it</button></div>`;
-    document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
+    s.innerHTML=`<div><h2>${t("sheetH")}</h2>${inApp?`<p>${t("inApp")}</p>`:""}<ol>${(isIOS()?T[LANG].ios:T[LANG].and).map(x=>`<li>${x}</li>`).join("")}</ol>${canShare?`<button id="shr">${t("shareMenu")}</button><div class="sp"></div>`:""}<div style="text-align:center;margin:0 0 10px">${selHTML()}</div><button id="sx" class="alt">${t("gotIt")}</button></div>`;
+    document.body.appendChild(s);bindSel(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
 }
 if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
