@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#FFF4E4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pifometer">
 <title>Pifometer – Daily Guessing Games</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,6 +108,11 @@ input[type=email]{width:100%;font:inherit;padding:14px;border-radius:14px;border
 .confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall 1.6s ease-in forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
+.chal{background:var(--g2s);border:2px solid var(--ink);border-radius:18px;padding:12px 14px;margin:14px 0 0;font-weight:700}
+.inst{margin-top:12px}.inst button{background:var(--card);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.sheet{position:fixed;inset:0;background:rgba(28,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.sheet>div{background:var(--card);border:2px solid var(--ink);border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-width:440px;width:100%}
+.sheet ol{padding-left:1.2em;margin:0 0 14px}.sheet li{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -123,9 +133,12 @@ const GAMES = [
 
 // ---------- Daily seed (same questions for everyone) ----------
 const today = new Date().toISOString().slice(0,10);
+const QS = new URLSearchParams(location.search);
+const CH = (()=>{const d=QS.get("c"),s=parseInt(QS.get("s"),10);return /^\d{4}-\d{2}-\d{2}$/.test(d||"")&&s>=0&&s<=1500?{date:d,score:s}:null})();
+const seedDay = CH?CH.date:today;
 function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}
   return ()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
-const R = rng(today);
+const R = rng(seedDay);
 const pick=(a,n)=>{const c=[...a],o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(R()*c.length),1)[0]);return o};
 const fmt=n=>n>=1e12?(n/1e12).toLocaleString("en",{maximumFractionDigits:1})+" trillion":n>=1e9?(n/1e9).toLocaleString("en",{maximumFractionDigits:1})+" billion":n>=1e6?(n/1e6).toLocaleString("en",{maximumFractionDigits:1})+" million":n.toLocaleString("en",{maximumFractionDigits:0});
 
@@ -261,14 +274,16 @@ function theme(g){const s=document.documentElement.style;
 function home(){
   theme(null);
   const st=store.get("streak",{n:0,last:""});
-  const done=store.get("done",null);const played=done&&done.date===today;
+  const done=store.get("done",null);const played=!CH&&done&&done.date===today;
   app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
   <div style="margin:28px 0 8px"><h1>How good is your gut?</h1>
   <p class="mut" style="font-size:18px">3 quick games, 3 minutes a day. Same questions for everyone, so you can compare with friends.</p></div>
+  ${CH?`<div class="chal">🥊 A friend scored <b>${CH.score}</b>/1500. Beat them on the same questions!</div>`:""}
   ${GAMES.map((g,i)=>`<div class="tile" style="--c:var(${g.c});--cs:var(${g.cs})"><div class="ic">${g.ic}</div><div><b>${g.title}</b><span>${g.rule}</span></div></div>`).join("")}
   <div class="push" style="padding-top:22px">${played
     ?`<button id="res">See today's result · ${done.total}</button><div class="sp"></div><button id="go" class="alt">Play again for fun</button>`
-    :`<button id="go">Play today's round</button>`}</div>`;
+    :`<button id="go">${CH?"Take the challenge":"Play today's round"}</button>`}${installHtml()}</div>`;
+  initInstall();
   go("go",()=>{gi=0;ri=0;pts=[[],[],[]];intro()});
   go("res",()=>result(done.pts,true));
 }
@@ -377,8 +392,8 @@ function finish(){
   const t=total();const st=store.get("streak",{n:0,last:""});
   const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
   if(st.last!==today){st.n=st.last===y?st.n+1:1;st.last=today;store.set("streak",st)}
-  store.set("done",{date:today,total:t,pts});
-  send("plays",{score:t,details:{date:today,ballpark:pts[0],angle:pts[1],year:pts[2]}});
+  if(!CH)store.set("done",{date:today,total:t,pts});
+  send("plays",{score:t,details:{date:seedDay,challenge:!!CH,ballpark:pts[0],angle:pts[1],year:pts[2]}});
   result(pts,false);
 }
 function rank(t){return t>=1300?["Hawk","🦅"]:t>=1050?["Sharp","🎯"]:t>=750?["Steady","🧭"]:["Warming up","🌱"]}
@@ -394,7 +409,9 @@ function result(P,again){
   <div class="score disp" id="sc">0</div><div class="mut" style="font-weight:700">out of 1500 · ${rk}</div></div>
   <div class="card"><div class="bars">${GAMES.map((g,i)=>{const s=P[i].reduce((a,b)=>a+b,0);return `<div><span>${g.ic} ${g.short}</span><em><b style="background:var(${g.c})" data-w="${s/5}"></b></em><span>${s}</span></div>`}).join("")}</div>
   <div class="grid" style="margin:14px 0 14px;text-align:center">${GAMES.map((g,i)=>P[i].map(sq).join("")).join("<br>")}</div>
-  <button id="cp">Share my score</button></div>
+  ${CH?`<div class="chal" style="margin:0 0 12px;text-align:center">${t>CH.score?"🏆 You beat your friend":t===CH.score?"🤝 It's a tie":"😅 Your friend wins"}: <b>${t}</b> vs <b>${CH.score}</b></div>`:""}
+  <button id="ch">Challenge a friend</button><div class="sp"></div><button id="cp" class="alt">Share my score</button></div>
+  ${installHtml()}
   <div class="card" style="margin-top:18px;background:var(--g2s)"><h2>Want the full app?</h2>
   <p>5 games including <b>Real or AI?</b> and <b>Guess the Accent</b>, streaks, leaderboards with friends and your weekly Pifometer profile.</p>
   ${joined?`<p style="margin:0"><b>You're on the list ✔</b> We'll email you first.</p>`:`<form id="wl"><input type="email" required placeholder="you@email.com" aria-label="Email" autocomplete="email"><button>Get early access</button></form>`}</div>
@@ -405,13 +422,36 @@ function result(P,again){
   requestAnimationFrame(()=>document.querySelectorAll(".bars b").forEach(b=>b.style.width=b.dataset.w+"%"));
   if(!again&&t>=1050)confetti(40);
   go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent="Copied ✔ Paste it anywhere"}}catch{}track("share")});
-  go("back",home);
+  go("ch",async e=>{const url=location.origin+location.pathname+"?c="+seedDay+"&s="+t;const msg=`I got ${t}/1500 on ${NAME}. Beat me on the same questions 👇`;
+    try{if(navigator.share)await navigator.share({text:msg,url});else{await navigator.clipboard.writeText(msg+" "+url);e.target.textContent="Link copied ✔ Send it to a friend"}}catch{}track("challenge")});
+  go("back",home);initInstall();
   const f=document.getElementById("wl");
   if(f)f.onsubmit=async e=>{e.preventDefault();const em=f.querySelector("input").value;
     const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:t});store.set("waitlist",list);
     send("waitlist",{email:em,score:t});
     store.set("joined",true);track("waitlist");result(P,true)};
 }
+// ---------- Install to home screen ----------
+let deferredInstall=null;
+const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;document.querySelectorAll(".inst").forEach(x=>x.hidden=false)});
+addEventListener("appinstalled",()=>{store.set("installed",true);document.querySelectorAll(".inst").forEach(x=>x.hidden=true)});
+function installHtml(){
+  if(isStandalone()||store.get("installed",false))return "";
+  // Android/desktop Chrome shows the button once the browser fires beforeinstallprompt; iOS always needs the manual steps.
+  return `<div class="inst" ${isIOS()?"":"hidden"}><button class="instbtn">📲 Add to home screen</button></div>`;
+}
+function initInstall(){
+  document.querySelectorAll(".instbtn").forEach(b=>b.onclick=async()=>{
+    if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice.catch(()=>{});deferredInstall=null;return}
+    const s=document.createElement("div");s.className="sheet";
+    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2><ol>${isIOS()
+      ?"<li>Tap the <b>Share</b> button at the bottom of Safari (the square with an arrow).</li><li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li>"
+      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol><button id="sx">Got it</button></div>`;
+    document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()}});
+}
+if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
   for(let i=0;i<n;i++){const s=document.createElement("i");s.style.left=Math.random()*100+"%";s.style.background=cols[i%4];s.style.animationDelay=Math.random()*.4+"s";c.appendChild(s)}
   document.body.appendChild(c);setTimeout(()=>c.remove(),2200)}
