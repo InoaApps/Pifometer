@@ -127,7 +127,7 @@ input[type=email]{width:100%;font:inherit;padding:14px;border-radius:14px;border
 const NAME = "Pifometer";
 const SB_URL = "https://mgfishwtcbpsuqdbhpia.supabase.co"; // Supabase project "business"
 const SB_KEY = "sb_publishable_X0ga4Q-22xxn8L-z6eTVCw_xr7CCDdc"; // public key: insert-only, cannot read data
-const APP_ID = "sharp-games";
+const APP_ID = "pifometer";
 function send(table,row){try{fetch(SB_URL+"/rest/v1/"+table,{method:"POST",keepalive:true,headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({app:APP_ID,player_id:PLAYER,...row})}).catch(()=>{})}catch{}}
 const ROUNDS = 5;
 const GAMES = [
@@ -286,7 +286,7 @@ function home(){
   ${CH?`<div class="chal">🥊 A friend scored <b>${CH.score}</b>/1500. Beat them on the same questions!</div>`:""}
   ${GAMES.map((g,i)=>`<div class="tile" style="--c:var(${g.c});--cs:var(${g.cs})"><div class="ic">${g.ic}</div><div><b>${g.title}</b><span>${g.rule}</span></div></div>`).join("")}
   <div class="push" style="padding-top:22px">${played
-    ?`<button id="res">See today's result · ${done.total}</button><div class="sp"></div><button id="go" class="alt">Play again for fun</button>`
+    ?`<button id="res">See today's result · ${done.total}</button><p class="mut" style="text-align:center;margin:12px 0 0">Today's round is done. New questions tomorrow 🌅</p>`
     :`<button id="go">${CH?"Take the challenge":"Play today's round"}</button>`}</div>`;
   initInstall();
   go("go",()=>{gi=0;ri=0;pts=[[],[],[]];intro()});
@@ -417,31 +417,34 @@ function result(P,again){
   ${CH?`<div class="chal" style="margin:0 0 12px;text-align:center">${t>CH.score?"🏆 You beat your friend":t===CH.score?"🤝 It's a tie":"😅 Your friend wins"}: <b>${t}</b> vs <b>${CH.score}</b></div>`:""}
   <button id="ch">Challenge a friend</button><div class="sp"></div><button id="cp" class="alt">Share my score</button></div>
   
-  <div class="card" style="margin-top:18px;background:var(--g2s)"><h2>Want the full app?</h2>
-  <p>5 games including <b>Real or AI?</b> and <b>Guess the Accent</b>, streaks, leaderboards with friends and your weekly Pifometer profile.</p>
-  ${joined?`<p style="margin:0"><b>You're on the list ✔</b> We'll email you first.</p>`:`<form id="wl"><input type="email" required placeholder="you@email.com" aria-label="Email" autocomplete="email"><button>Get early access</button></form>`}</div>
+  <div class="card" style="margin-top:18px;background:var(--g2s)">${!joined
+    ?`<h2>Come back tomorrow, or get more</h2><p>One round a day is the free demo. Leave your email and we'll tell you first when the full app opens.</p><form id="wl"><input type="email" required placeholder="you@email.com" aria-label="Email" autocomplete="email"><button>Get early access</button></form>`
+    :store.get("offer",false)
+      ?`<h2>You're on the list ✔</h2><p style="margin:0"><b>Coming soon.</b> Nothing was charged. We'll email you before launch with your founder price.</p>`
+      :`<h2>You're on the list ✔</h2><p><b>Founder price:</b> <b>$14.99/year</b> <s>$29.99</s><br>Unlimited play, stats and history.</p><button id="offer">Get the founder price</button>`}</div>
   <div class="sp"></div><button class="alt" id="back">Back home</button>`;
   // animate
   const el=document.getElementById("sc"),t0=performance.now(),rm=matchMedia("(prefers-reduced-motion:reduce)").matches;
   const tick=n=>{const k=rm?1:Math.min(1,(n-t0)/900);el.textContent=Math.round(t*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
   requestAnimationFrame(()=>document.querySelectorAll(".bars b").forEach(b=>b.style.width=b.dataset.w+"%"));
   if(!again&&t>=1050)confetti(40);
-  go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent="Copied ✔ Paste it anywhere"}}catch{}track("share")});
+  go("cp",async e=>{try{if(navigator.share)await navigator.share({text:share});else{await navigator.clipboard.writeText(share);e.target.textContent="Copied ✔ Paste it anywhere"}track("share")}catch{}});
   go("ch",async e=>{const url=location.origin+location.pathname+"?c="+seedDay+"&s="+t;const msg=`I got ${t}/1500 on ${NAME}. Beat me on the same questions 👇`;
-    try{if(navigator.share)await navigator.share({text:msg,url});else{await navigator.clipboard.writeText(msg+" "+url);e.target.textContent="Link copied ✔ Send it to a friend"}}catch{}track("challenge")});
+    try{if(navigator.share)await navigator.share({text:msg,url});else{await navigator.clipboard.writeText(msg+" "+url);e.target.textContent="Link copied ✔ Send it to a friend"}track("challenge",{score:t})}catch{}});
   go("back",home);initInstall();
   const f=document.getElementById("wl");
   if(f)f.onsubmit=async e=>{e.preventDefault();const em=f.querySelector("input").value;
     const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:t});store.set("waitlist",list);
     send("waitlist",{email:em,score:t});
     store.set("joined",true);track("waitlist");result(P,true)};
+  go("offer",()=>{store.set("offer",true);track("offer_click",{price:14.99,score:t});result(P,true)});
 }
 // ---------- Install to home screen ----------
 let deferredInstall=null;
 const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e});
-addEventListener("appinstalled",()=>{store.set("installed",true);showBubble()});
+addEventListener("appinstalled",()=>{markInstalled("appinstalled");showBubble()});
 addEventListener("gesturestart",e=>e.preventDefault());
 document.addEventListener("dblclick",e=>e.preventDefault());
 function showBubble(){
@@ -465,7 +468,9 @@ if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventLis
 function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
   for(let i=0;i<n;i++){const s=document.createElement("i");s.style.left=Math.random()*100+"%";s.style.background=cols[i%4];s.style.animationDelay=Math.random()*.4+"s";c.appendChild(s)}
   document.body.appendChild(c);setTimeout(()=>c.remove(),2200)}
-function track(ev){/* plug analytics here (Plausible / PostHog) */}
+function track(name,details){send("events",{name,details:details||null})}
+function markInstalled(via){store.set("installed",true);if(!store.get("inst_sent",false)){store.set("inst_sent",true);track("install",{via})}}
+if(isStandalone())markInstalled("standalone");
 home();
 </script>
 </body>
