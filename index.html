@@ -116,12 +116,12 @@ input[type=email]{width:100%;font:inherit;padding:14px;border-radius:14px;border
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
 .chal{background:var(--g2s);border:2px solid var(--ink);border-radius:18px;padding:12px 14px;margin:14px 0 0;font-weight:700}
 .inst{margin-top:12px}.inst button{background:var(--card);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
-.sheet{position:fixed;inset:0;background:rgba(28,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.sheet{position:fixed;inset:0;background:rgba(28,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:25}
 .sheet>div{background:var(--card);border:2px solid var(--ink);border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-width:440px;width:100%}
-.lsw{display:inline-flex;align-items:center;gap:2px;font-size:13px;color:var(--mut)}
-.lsw button{all:unset;cursor:pointer;padding:6px 5px;font-weight:700;color:var(--mut);font-size:13px}
-.lsw button.on{color:var(--ink);font-weight:800;text-decoration:underline}
-.lsw i{font-style:normal;opacity:.5}.lsw i.gap{width:10px}
+#lg{position:fixed;right:10px;bottom:max(12px,env(safe-area-inset-bottom));z-index:15;display:flex;gap:6px}
+#lg button{background:rgba(28,20,51,.82);color:#fff;border-radius:99px;padding:5px 9px;font-size:11px;font-weight:500;letter-spacing:.02em;min-height:0;width:auto;box-shadow:none}
+#lg b{font-weight:800;text-decoration:underline;text-underline-offset:2px}
+body{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
 .sheet ol{padding-left:1.2em;margin:0 0 14px}.sheet li{margin-bottom:8px}
 </style>
 </head>
@@ -135,13 +135,11 @@ const SB_KEY = "sb_publishable_X0ga4Q-22xxn8L-z6eTVCw_xr7CCDdc"; // public key: 
 const APP_ID = "pifometer";
 function send(table,row){try{fetch(SB_URL+"/rest/v1/"+table,{method:"POST",keepalive:true,headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({app:APP_ID,player_id:PLAYER,...row})}).catch(()=>{})}catch{}}
 // ---------- Language and units ----------
-let LANG="en",SYS="imp";
-try{
-  const qs=new URLSearchParams(location.search).get("lang"),sl=JSON.parse(localStorage.getItem("lang")),su=JSON.parse(localStorage.getItem("units"));
-  const nav=(navigator.language||"en").toLowerCase();
-  LANG=(sl==="fr"||sl==="en")?sl:(qs==="fr"||qs==="en")?qs:nav.startsWith("fr")?"fr":"en";
-  SYS=(su==="imp"||su==="met")?su:(LANG==="fr"?"met":/-us$/.test(nav)?"imp":"met");
-}catch{}
+const LS=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch{}};
+// Same rules and keys as Scrollwise: "lang" en|fr, "units" us|metric
+const LANG=(()=>{const s=LS("lang"),q=new URLSearchParams(location.search).get("lang");if(s==="en"||s==="fr")return s;if(q==="en"||q==="fr")return q;return /^fr/i.test(navigator.language||"")?"fr":"en"})();
+const UNITS=(()=>{const s=LS("units");if(s==="us"||s==="metric")return s;if(LANG==="fr")return "metric";return /^en(-US)?$/i.test(navigator.language||"en-US")?"us":"metric"})();
+const SYS=UNITS==="us"?"imp":"met";
 document.documentElement.lang=LANG;
 const T={
 en:{
@@ -216,10 +214,12 @@ fr:{
  shareMenu:"Ouvrir le menu Partager",gotIt:"Compris"}};
 const t=(k,...a)=>{const v=T[LANG][k]??T.en[k];return typeof v==="function"?v(...a):v};
 document.title=t("title");
-function setPref(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}location.reload()}
-function selHTML(){const b=(on,k,v,l)=>`<button type="button" data-k="${k}" data-v="${v}" class="${on?"on":""}" aria-pressed="${on}">${l}</button>`;
-  return `<span class="lsw">${b(LANG==="en","lang","en","EN")}<i>|</i>${b(LANG==="fr","lang","fr","FR")}<i class="gap"></i>${b(SYS==="imp","units","imp","mi")}<i>|</i>${b(SYS==="met","units","met","km")}</span>`}
-function bindSel(r){(r||document).querySelectorAll(".lsw button").forEach(b=>b.onclick=()=>setPref(b.dataset.k,b.dataset.v))}
+function langPill(){const w=document.createElement("div");w.id="lg";
+  const on=(a,b,x)=>x?`<b>${a}</b> · ${b}`:`${a} · <b>${b}</b>`;
+  w.innerHTML=`<button id="lgb" aria-label="Language / Langue">${on("EN","FR",LANG==="en")}</button><button id="unb" aria-label="Units / Unités">${on("mi","km",UNITS==="us")}</button>`;
+  document.body.appendChild(w);
+  w.querySelector("#lgb").onclick=()=>{LS("lang",LANG==="en"?"fr":"en");LS("units",LANG==="en"?"metric":"us");location.reload()};
+  w.querySelector("#unb").onclick=()=>{LS("units",UNITS==="us"?"metric":"us");location.reload()}}
 const fmt=n=>{const L=LANG==="fr"?"fr":"en",f=(x,d)=>x.toLocaleString(L,{maximumFractionDigits:d}),w=LANG==="fr"
   ?[["billion","billions"],["milliard","milliards"],["million","millions"]]:[["trillion","trillion"],["billion","billion"],["million","million"]];
   const s=(v,x)=>f(v,1)+" "+(LANG==="fr"&&Math.abs(v)<2?x[0]:x[1]);
@@ -373,7 +373,6 @@ function home(){
   const st=store.get("streak",{n:0,last:""});
   const done=store.get("done",null);const played=!CH&&done&&done.date===today;
   app.innerHTML=`<div class="row"><span class="logo"><i></i>${NAME}</span><span class="pill">🔥 ${st.n}</span></div>
-  <div style="margin:10px 0 0;text-align:right">${selHTML()}</div>
   <div style="margin:14px 0 8px"><h1>${t("h1")}</h1>
   <p class="mut" style="font-size:18px">${t("sub")}</p></div>
   ${CH?`<div class="chal">${t("chal",CH.score)}</div>`:""}
@@ -381,7 +380,7 @@ function home(){
   <div class="push" style="padding-top:22px">${played
     ?`<button id="res">${t("seeRes",done.total)}</button><p class="mut" style="text-align:center;margin:12px 0 0">${t("doneMsg")}</p>`
     :`<button id="go">${CH?t("takeCh"):t("playToday")}</button>`}</div>`;
-  bindSel(app);initInstall();
+  initInstall();
   go("go",()=>{gi=0;ri=0;pts=[[],[],[]];intro()});
   go("res",()=>result(done.pts,true));
 }
@@ -555,8 +554,8 @@ function initInstall(){
     const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Twitter|Line\//i.test(navigator.userAgent);
     const s=document.createElement("div");s.className="sheet";
     const canShare=isIOS()&&navigator.share&&!inApp;
-    s.innerHTML=`<div><h2>${t("sheetH")}</h2>${inApp?`<p>${t("inApp")}</p>`:""}<ol>${(isIOS()?T[LANG].ios:T[LANG].and).map(x=>`<li>${x}</li>`).join("")}</ol>${canShare?`<button id="shr">${t("shareMenu")}</button><div class="sp"></div>`:""}<div style="text-align:center;margin:0 0 10px">${selHTML()}</div><button id="sx" class="alt">${t("gotIt")}</button></div>`;
-    document.body.appendChild(s);bindSel(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
+    s.innerHTML=`<div><h2>${t("sheetH")}</h2>${inApp?`<p>${t("inApp")}</p>`:""}<ol>${(isIOS()?T[LANG].ios:T[LANG].and).map(x=>`<li>${x}</li>`).join("")}</ol>${canShare?`<button id="shr">${t("shareMenu")}</button><div class="sp"></div>`:""}<button id="sx" class="alt">${t("gotIt")}</button></div>`;
+    document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
 }
 if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
@@ -565,6 +564,7 @@ function confetti(n){const c=document.createElement("div");c.className="confetti
 function track(name,details){send("events",{name,details:details||null})}
 function markInstalled(via){store.set("installed",true);if(!store.get("inst_sent",false)){store.set("inst_sent",true);track("install",{via})}}
 if(isStandalone()){markInstalled("standalone");if(store.get("io","")!==today){store.set("io",today);track("open_installed")}}
+langPill();
 home();
 </script>
 </body>
