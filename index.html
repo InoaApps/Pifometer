@@ -205,7 +205,7 @@ fr:{
  offH:"Reviens demain, ou va plus loin",offP:"Un tour par jour, c'est la démo gratuite. Laisse ton email et on te prévient en premier à l'ouverture de l'appli complète.",
  ph:"toi@email.fr",ariaEmail:"Email",early:"Accès anticipé",onList:"Tu es sur la liste ✔",
  soon:"<b>Bientôt disponible.</b> Rien n'a été débité. On t'écrit avant le lancement avec ton prix fondateur.",
- fp:"Prix fondateur :",price:"14,99 $/an",old:"29,99 $",
+ fp:"Prix fondateur :",price:"15 €/an",old:"30 €",
  perks:["Joue autant de tours que tu veux, chaque jour","Vois ta progression, semaine après semaine","Découvre si tu sous-estimes ou surestimes (ton profil pifomètre)","Rate un jour sans perdre ta série","Choisis ton défi : Facile, Normal ou Difficile"],
  getFp:"Obtenir le prix fondateur",back:"Retour à l'accueil",
  bubble:"Obtenir l'appli",inst:"Installer",ariaInst:"Installer l'appli Pifometer",
@@ -530,7 +530,7 @@ function result(P,again){
     const list=store.get("waitlist",[]);list.push({email:em,at:Date.now(),score:tt});store.set("waitlist",list);
     send("waitlist",{email:em,score:tt});
     store.set("joined",true);track("waitlist");result(P,true)};
-  go("offer",()=>{store.set("offer",true);track("offer_click",{price:14.99,score:tt});result(P,true)});
+  go("offer",()=>{store.set("offer",true);track("offer_click",{price:LANG==="fr"?15:14.99,currency:LANG==="fr"?"EUR":"USD",score:tt});result(P,true)});
 }
 // ---------- Install to home screen ----------
 let deferredInstall=null;
