@@ -454,11 +454,12 @@ function initInstall(){
   showBubble();
   document.querySelectorAll(".instbtn").forEach(b=>b.onclick=async()=>{
     if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice.catch(()=>{});deferredInstall=null;return}
+    const inApp=/Instagram|FBAN|FBAV|TikTok|musical_ly|Line\//i.test(navigator.userAgent);
     const s=document.createElement("div");s.className="sheet";
-    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2><ol>${isIOS()
-      ?"<li>Tap the <b>Share</b> button at the bottom of Safari (the square with an arrow).</li><li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li>"
-      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol><button id="sx">Got it</button></div>`;
-    document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()}});
+    s.innerHTML=`<div><h2>Add Pifometer to your home screen</h2>${inApp?`<p><b>First, open this page in ${isIOS()?"Safari":"Chrome"}.</b> Tap the ⋯ or share icon in the corner and choose <b>Open in browser</b>. Installing isn't possible inside Instagram or TikTok.</p>`:`<ol>${isIOS()
+      ?(navigator.share?"<li>Tap <b>Open share menu</b> below (or the Share button at the bottom of Safari).</li>":"<li>Tap the <b>Share</b> button at the bottom of Safari.</li>")+"<li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li>"
+      :"<li>Open your browser menu (⋮).</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>"}</ol>${isIOS()&&navigator.share?'<button id="shr">Open share menu</button><div class="sp"></div>':""}`}<button id="sx" class="alt">Got it</button></div>`;
+    document.body.appendChild(s);s.onclick=e=>{if(e.target===s||e.target.id==="sx")s.remove()};const sh=s.querySelector("#shr");if(sh)sh.onclick=()=>navigator.share({title:"Pifometer",url:location.href.split("?")[0]}).catch(()=>{})});
 }
 if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 function confetti(n){const c=document.createElement("div");c.className="confetti";const cols=["#FF6B3D","#7B5CFF","#0FB67F","#FFC83D"];
